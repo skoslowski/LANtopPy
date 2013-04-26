@@ -1,0 +1,17 @@
+{
+    "loggers": {
+        "lantop": {
+            "handlers": [
+                "console"
+            ], 
+            "level": "WARNING"
+        }
+    }, 
+    "version": 1, 
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler", 
+            "stream": "ext://sys.stderr"
+        }
+    }
+}
