@@ -16,6 +16,7 @@ from dateutil.parser import parse
 
 from . _config import CONFIG
 from .. _config import LANTOP_CONF_PATH
+from . cron_action import LantopCronAction
 
 
 class GCalEventError(Exception):
@@ -24,10 +25,10 @@ class GCalEventError(Exception):
 
 
 class GCalEventImporter(object):
-    """Class for easily retrieving a list of calendar entries from Google"""
+    """Class for retrieving a list of calendar entries from Google"""
     
     def __init__(self):
-        """Connect and authenticate with Google API"""
+        """Connect to and authenticate with Google API"""
         self.cal_id = ''     
         
         FLAGS = gflags.FLAGS
@@ -63,7 +64,7 @@ class GCalEventImporter(object):
     def get_events(self, start, end):
         """Retrieve a list of event in the time between start and stop"""
         if not self.cal_id:
-            raise GCalEventError('No Calendar selected')
+            raise GCalEventError('No calendar selected')
         
         events = self.service.events().list(
             calendarId=self.cal_id,
@@ -84,11 +85,17 @@ class GCalEventImporter(object):
         return events['items']
 
 
-
 def parse_event_desc(event, channels):
-    """Translate event description into triggers for certain channels"""
+    """Get triggers from event description
+
+    Mentioning a channel label in the description will turn this channel on for
+    the duration of the event. Optionally start and end time offsets can be
+    specified by appending them to the label: LABEL[S_OFF[E_OFF]], where S_OFF
+    and E_OFF are the offsets in minutes including their sign (+-xxx)
+
+    """
     prog = re.compile(u'(' + u'|'.join(channels.keys()) + u')' +  # channels
-                      u'([+-][0-9]+)?([+-][0-9]+)?',               # offsets
+                      u'([+-][0-9]+)?([+-][0-9]+)?',              # offsets
                       re.I | re.U)
 
     for match in prog.findall(event['description']):
@@ -99,11 +106,10 @@ def parse_event_desc(event, channels):
         offset_end = int(match[2]) \
             if len(match) > 2 and len(match[2]) > 0 else 0
 
-        yield {'comment': event['summary'],
-               'channel': index,
-               'start': event['start'] + timedelta(minutes=offset_start),
-               'duration': (event['end'] - event['start'] +
-                            timedelta(minutes=offset_end - offset_start))}
+        start = event['start'] + timedelta(minutes=offset_start)
+        duration = (event['end'] - event['start'] +
+                    timedelta(minutes=offset_end - offset_start))
+        yield LantopCronAction(index, start, duration, event['summary'])
 
 
 def extract_actions(events, channels):
@@ -112,12 +118,10 @@ def extract_actions(events, channels):
         for name, index in channels.iteritems():
             # Check if the channel name is in the event title
             if name in event['summary'].lower():
-                # return triggers for this channel, no offsets
-                yield {'comment': event['summary'],
-                       'channel': index,
-                       'start': event['start'],
-                       'duration': event['end'] - event['start']}
-                break
+                yield LantopCronAction(index, event['start'],
+                                      event['end'] - event['start'],
+                                      event['summary'])
+                break  # only one channel trigger per event
         else:
             # if no channel names in event title, try to parse its description
             for action in parse_event_desc(event, channels):  # yield from

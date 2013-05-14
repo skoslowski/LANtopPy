@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Config values for gcal2cron package"""
+"""Config values for gcalimport package"""
 
 CONFIG = {
     ############################################################

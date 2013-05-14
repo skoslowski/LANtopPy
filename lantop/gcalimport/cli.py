@@ -30,11 +30,13 @@ def main():
     load_config()
 
     # get logger
+
     logging_config_file = os.path.expanduser(
-        os.path.join(LANTOP_CONF_PATH, 'logging.conf'))
+        os.path.join(LANTOP_CONF_PATH, 'logging.json'))
     if os.path.exists(logging_config_file):
-        logging.config.fileConfig(logging_config_file)
-    logger = logging.getLogger('lantop.google_importer')
+        with open(logging_config_file, 'r') as fp:
+            logging.config.dictConfig(json.load(fp))
+    logger = logging.getLogger('lantop.gcal_import')
     logger.addHandler(logging.NullHandler())
 
     # get events from Google Calendar
@@ -49,7 +51,7 @@ def main():
         return 1
 
     # build cron file with data found in events
-    output = u''
+    output = u""
     action_counter = 0
     try:
         output += u"# LANtopPy file - auto generated from google calendar\n"
@@ -57,19 +59,16 @@ def main():
 
         for action in extract_actions(events, CONFIG['channels']):
             # skip past events
-            if action['start'] <= now:
+            if action.start <= now:
                 continue
-            # emtpy line between events of different days
-            if last_day is None or last_day < action['start'].date():
-                last_day = action['start'].date()
+            # empty line between events of different days
+            if last_day is None or last_day < action.start.date():
+                last_day = action.start.date()
                 output += "\n"
             # generate crontab line
-            output += (u"{start:%M %H %d %m *}\t{user}\t"
-                       u"{cmd} " + CONFIG['cron']['args'] + u"\t"
-                       u"# {comment}\n").format(user=CONFIG['cron']['user'],
-                                                cmd=CONFIG['cron']['cmd'],
-                                                **action)
+            output += str(action)
             action_counter += 1
+
     #except Exception as e:
     #    logger.exception(e)
     #    #logger.error("Could not parse event data: %s", str(e))
@@ -77,7 +76,7 @@ def main():
     finally:
         pass
     # log import, warn if no event at least every other day
-    logger.info('Imported %d actions from google calendar', action_counter)
+    logger.info("Imported %d actions from google calendar", action_counter)
 
     print output
 
@@ -86,5 +85,5 @@ def main():
         with open(CONFIG['cron']['file'], 'w') as fp:
             fp.write(output.encode('utf8'))
     except IOError:
-        logger.error("Could not write to cron file")
+        logger.error("Could not write to crontab file")
         return 1
