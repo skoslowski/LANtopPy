@@ -100,17 +100,22 @@ setup(
     packages = ['lantop'],
 
     install_requires = [
-        "python-dateutil"
+        "python-dateutil",
+        "oauth2client",
+        "apiclient",
+        "httplib2"
     ],
 
     entry_points = {
         "console_scripts": [
             "lantop = lantop.cli:main"
+            "gcal_import = lantop.gcalimport.cli:main"
         ]
     },
 
     data_files = [
-        ("~/.config/lantop", ["config/logging.json"])
+        ("~/.config/lantop", ["config/logging.json",
+                              "config/gcal_import.json"])
     ],
     package_data = {
         "": ["README.md", "LICENSE.txt"]

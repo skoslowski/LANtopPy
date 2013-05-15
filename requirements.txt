@@ -1,1 +1,4 @@
+oauth2client
+apiclient
+httplib2
 python-dateutil

@@ -2,74 +2,69 @@
 # -*- coding: utf-8 -*-
 
 import unittest
+from datetime import datetime, timedelta
+from dateutil.tz import tzlocal
 
-from lantop.gcalimport.event_importer import extract_actions, parse_event_desc
+from lantop.gcalimport.event_parser import LantopCronAction, extract_actions, \
+    extract_actions_from_desc
 
 CHANNELS = {'ch' + str(i): i for i in range(4)}
+NOW = datetime.now(tzlocal())
+
+
+def Event(summary='', start=None, end=None, description=''):
+    """Get event dict like google API does"""
+    return {'summary': summary or u"summary",
+            'start': start or NOW,
+            'end': end or NOW + timedelta(hours=2),
+            'description': description}
 
 
 class EventParserTest(unittest.TestCase):
-    def setUp(self):
-        pass
-
-    def tearDown(self):
-        pass
-
     def test_parse_events(self):
-        for name, i in CHANNELS.iteritems():
-            desc = u'Random foo' + name + u' bar'
-            result = ({0: [i]},  # trigger_start: offset 0
-                      {0: [i]})  # trigger_end: offset 0
-            self.assertEqual(result, parse_event_desc(desc, CHANNELS))
+        events = [Event(summary=u"x ch0 adsf"), Event(summary=u"ch1")]
+        actions = list(extract_actions(events, CHANNELS))
+        exp = [LantopCronAction(0, NOW, timedelta(minutes=120), u"x ch0 adsf"),
+               LantopCronAction(1, NOW, timedelta(minutes=120), u"ch1")]
+        self.assertEqual(exp, actions)
 
-    def test_parse_events_lueftung_wrong(self):
-        desc = r"asfsaf Lüftung alskdfj"
-        result = 2 * ({},)
-        self.assertEqual(result, parse_event_desc(desc, CHANNELS))
+    def test_parse_empty_event(self):
+        self.assertEqual([], list(extract_actions([Event()], CHANNELS)))
 
-    def test_parse_events_offset(self):
-        desc = "asfsaf MUTTERKIND+10 alskdfj"
-        i = CHANNELS[u'mutterkind']
-        result = ({10: [i]}, {0: [i]})
-        self.assertEqual(result, parse_event_desc(desc, CHANNELS))
+    def test_parse_desc(self):
+        events = [Event(description=u"j ch0 adsf ch2")]
+        actions = list(extract_actions(events, CHANNELS))
+        exp = [LantopCronAction(0, NOW, timedelta(minutes=120), u"summary"),
+               LantopCronAction(2, NOW, timedelta(minutes=120), u"summary")]
+        self.assertEqual(exp, actions)
 
-    def test_parse_events_offset2(self):
-        desc = "asfsaf MUTTERKIND-10+100 alskdfj"
-        i = CHANNELS[u'mutterkind']
-        result = ({-10: [i]}, {100: [i]})
-        self.assertEqual(result, parse_event_desc(desc, CHANNELS))
+    def test_parse_desc_offset(self):
+        events = [Event(description=u"ch1+60")]
+        actions = list(extract_actions(events, CHANNELS))
+        actions2 = list(extract_actions_from_desc(events[0], CHANNELS))
+        self.assertEqual(actions, actions2)
+        exp = [LantopCronAction(1, NOW + timedelta(minutes=60),
+                                timedelta(minutes=60), u"summary")]
+        self.assertEqual(exp, actions)
 
-    def test_parse_events_combine(self):
-        desc = u"asfsaf LÜFTUNG-10+100 alskdfj heizung-10-2"
-        il = CHANNELS[u'lüftung']
-        ih = CHANNELS[u'heizung']
-        result = ({-10: [il, ih]}, {100: [il], -2: [ih]})
-        self.assertEqual(result, parse_event_desc(desc))
+    def test_parse_desc_offsets(self):
+        events = [Event(description=u"ch1+30-60")]
+        actions = list(extract_actions(events, CHANNELS))
+        exp = [LantopCronAction(1, NOW + timedelta(minutes=30),
+                                timedelta(minutes=30), u"summary")]
+        self.assertEqual(exp, actions)
 
-    def test_parse_event_summary(self):
-        for name, i in CHANNELS.iteritems():
-            event = {'summary': u'Random foo' + name + u' bar'}
-            result = ({0: [i]}, {0: [i]})
-            self.assertEqual(result, parse_event(event))
+    def test_parse_desc_offsets(self):
+        events = [Event(description=u"ch1+30-60")]
+        actions = list(extract_actions(events, CHANNELS))
+        exp = [LantopCronAction(1, NOW + timedelta(minutes=30),
+                                timedelta(minutes=30), u"summary")]
+        self.assertEqual(exp, actions)
 
-    def test_parse_event_summary(self):
-        for name, i in CHANNELS.iteritems():
-            event = {'summary': u'Random foo' + name.upper() + u' bar'}
-            result = ({0: [i]}, {0: [i]})
-            self.assertEqual(result, parse_event(event))
-
-    def test_parse_events_all_in_one(self):
-        event = {'summary': 'Tolles Event',
-                 'description': u"asfsaf LÜFTUNG-10+100heizung-10-2"
-                                u"mutterkind+9spare-2-2"}
-        il = CHANNELS[u'lüftung']
-        im = CHANNELS[u'mutterkind']
-        ih = CHANNELS[u'heizung']
-        ip = CHANNELS[u'spare']
-        result = ({9: [im], -2: [ip], -10: [il, ih]},
-                  {0: [im], 100: [il], -2: [ih, ip]})
-        self.assertEqual(result, parse_event(event))
-
+    def test_parse_desc_offsets_neg_duration(self):
+        events = [Event(description=u"ch1+60-90")]
+        actions = list(extract_actions(events, CHANNELS))
+        self.assertEqual([], actions)
 
 if __name__ == "__main__":
     unittest.main()

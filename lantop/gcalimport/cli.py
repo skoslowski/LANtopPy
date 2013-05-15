@@ -8,7 +8,9 @@ from datetime import datetime, timedelta
 from dateutil.tz import tzlocal
 import json
 
-from . event_importer import GCalEventImporter, GCalEventError, extract_actions
+from . event_importer import GCalEventImporter, GCalEventError
+from . event_parser import extract_actions
+
 from . _config import CONFIG
 from .. _config import LANTOP_CONF_PATH
 
@@ -51,39 +53,22 @@ def main():
         return 1
 
     # build cron file with data found in events
-    output = u""
-    action_counter = 0
     try:
-        output += u"# LANtopPy file - auto generated from google calendar\n"
-        last_day = None
+        entries = [unicode(action).encode("UTF-8")
+                   for action in extract_actions(events, CONFIG['channels'])
+                   if action.start > now]
+        logger.info("Imported %d actions from google calendar", len(entries))
 
-        for action in extract_actions(events, CONFIG['channels']):
-            # skip past events
-            if action.start <= now:
-                continue
-            # empty line between events of different days
-            if last_day is None or last_day < action.start.date():
-                last_day = action.start.date()
-                output += "\n"
-            # generate crontab line
-            output += str(action)
-            action_counter += 1
-
-    #except Exception as e:
-    #    logger.exception(e)
-    #    #logger.error("Could not parse event data: %s", str(e))
-    #    return 1
-    finally:
-        pass
-    # log import, warn if no event at least every other day
-    logger.info("Imported %d actions from google calendar", action_counter)
-
-    print output
+    except Exception as e:
+        logger.exception(e)
+        #logger.error("Could not parse event data: %s", str(e))
+        return 1
 
     # all good till here? Write triggers to file
     try:
         with open(CONFIG['cron']['file'], 'w') as fp:
-            fp.write(output.encode('utf8'))
+            fp.write(u"# LANtopPy actions - generated from google calendar\n")
+            fp.write("\n".join(entries))
     except IOError:
         logger.error("Could not write to crontab file")
         return 1

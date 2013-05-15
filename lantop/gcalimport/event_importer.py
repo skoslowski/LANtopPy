@@ -2,10 +2,8 @@
 """Handles Google API client stuff"""
 
 import os
-import re
 import gflags
 import httplib2
-from datetime import timedelta
 
 from apiclient.discovery import build
 from oauth2client.file import Storage
@@ -16,7 +14,6 @@ from dateutil.parser import parse
 
 from . _config import CONFIG
 from .. _config import LANTOP_CONF_PATH
-from . cron_action import LantopCronAction
 
 
 class GCalEventError(Exception):
@@ -83,46 +80,3 @@ class GCalEventImporter(object):
             raise GCalEventError('There were more')
             
         return events['items']
-
-
-def parse_event_desc(event, channels):
-    """Get triggers from event description
-
-    Mentioning a channel label in the description will turn this channel on for
-    the duration of the event. Optionally start and end time offsets can be
-    specified by appending them to the label: LABEL[S_OFF[E_OFF]], where S_OFF
-    and E_OFF are the offsets in minutes including their sign (+-xxx)
-
-    """
-    prog = re.compile(u'(' + u'|'.join(channels.keys()) + u')' +  # channels
-                      u'([+-][0-9]+)?([+-][0-9]+)?',              # offsets
-                      re.I | re.U)
-
-    for match in prog.findall(event['description']):
-        name = match[0].lower()
-        index = channels[name]
-        offset_start = int(match[1]) \
-            if len(match) > 1 and len(match[1]) > 0 else 0
-        offset_end = int(match[2]) \
-            if len(match) > 2 and len(match[2]) > 0 else 0
-
-        start = event['start'] + timedelta(minutes=offset_start)
-        duration = (event['end'] - event['start'] +
-                    timedelta(minutes=offset_end - offset_start))
-        yield LantopCronAction(index, start, duration, event['summary'])
-
-
-def extract_actions(events, channels):
-    """Extract actions from events"""
-    for event in events:
-        for name, index in channels.iteritems():
-            # Check if the channel name is in the event title
-            if name in event['summary'].lower():
-                yield LantopCronAction(index, event['start'],
-                                      event['end'] - event['start'],
-                                      event['summary'])
-                break  # only one channel trigger per event
-        else:
-            # if no channel names in event title, try to parse its description
-            for action in parse_event_desc(event, channels):  # yield from
-                yield action
