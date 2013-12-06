@@ -9,7 +9,7 @@ from dateutil.tz import tzlocal
 import json
 
 from . event_importer import GCalEventImporter, GCalEventError
-from . event_parser import extract_actions
+from . event_parser import get_combined_actions
 
 from . _config import CONFIG
 from .. _config import LANTOP_CONF_PATH
@@ -32,7 +32,6 @@ def main():
     load_config()
 
     # get logger
-
     logging_config_file = os.path.expanduser(
         os.path.join(LANTOP_CONF_PATH, 'logging.json'))
     if os.path.exists(logging_config_file):
@@ -55,8 +54,8 @@ def main():
     # build cron file with data found in events
     try:
         entries = [unicode(action).encode("UTF-8")
-                   for action in extract_actions(events, CONFIG['channels'])
-                   if action.start > now]
+                   for action in get_combined_actions(events)
+                   if action.time > now]
         logger.info("Imported %d actions from google calendar", len(entries))
 
     except Exception as e:
@@ -67,7 +66,7 @@ def main():
     # all good till here? Write triggers to file
     try:
         with open(CONFIG['cron']['file'], 'w') as fp:
-            fp.write(u"# LANtopPy actions - generated from google calendar\n")
+            fp.write("# LANtopPy actions - generated from google calendar\n")
             fp.write("\n".join(entries))
     except IOError:
         logger.error("Could not write to crontab file")

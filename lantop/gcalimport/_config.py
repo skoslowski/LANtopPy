@@ -40,6 +40,6 @@ CONFIG = {
         # path to lantop cli
         'cmd': '/usr/local/bin/lantop',
         # argument template to the above command
-        'args': u'--state {channel:d}:on --duration {duration:s}'
+        'arg': u'--state {channel:d}:{state:s}'
     }
 }
