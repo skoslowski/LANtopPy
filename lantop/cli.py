@@ -14,6 +14,7 @@ import logging.config
 
 import argparse
 
+from . import __version__
 from . lantop import Lantop, LantopException, CONTROL_MODES, TIMED_STATE_LABELS
 from . _config import LANTOP_CONF_PATH
 
@@ -69,7 +70,8 @@ def parse_args(args):
     except (IOError, ValueError):
         dev_addr = None
 
-    parser = argparse.ArgumentParser(description='Get and set LANtop2 state')
+    parser = argparse.ArgumentParser(description='Get and set LANtop2 state, '
+                                                 'settings and statistics')
 
     extra_args = {'nargs': '?', 'default': dev_addr} if dev_addr else {}
     parser.add_argument(metavar="host[:port]", dest="dev_addr",
@@ -100,6 +102,8 @@ def parse_args(args):
                         action="store_true", help="Set default IP (and port)")
     parser.add_argument("-q", "--quiet", dest="be_quiet", action="store_true",
                         help="Suppress output")
+    parser.add_argument("-v", "--version", dest="show_version",
+                        action="store_true", help="Show version string.")
 
     options = parser.parse_args(args)
 
@@ -206,17 +210,26 @@ def get_and_print_overview(device, options):
         print(fmt.format(name, state, *stats, **states[channel]))
 
 
-def main(args=None):
-    """main function for the CLI"""
+def get_logger(name):
+    """Load logging settings from file"""
     logging_config_file = os.path.expanduser(
         os.path.join(LANTOP_CONF_PATH, 'logging.json'))
     if os.path.exists(logging_config_file):
         with open(logging_config_file, 'r') as fp:
             logging.config.dictConfig(json.load(fp))
-    logger = logging.getLogger('lantop.cli')
+    logger = logging.getLogger(name)
     logger.addHandler(logging.NullHandler())
+    return logger
 
+
+def main(args=None):
+    """main function for the CLI"""
+    logger = get_logger('lantop.cli')
     options = parse_args(args or sys.argv[1:])
+
+    if options.show_version:
+        print("Version: {}".format(__version__))
+        return 0
 
     device = None
     try:

@@ -107,8 +107,9 @@ setup(
 
     entry_points = {
         "console_scripts": [
-            "lantop = lantop.cli:main"
-            "gcal_import = lantop.gcalimport.cli:main"
+            "lantop=lantop.cli:main",
+            "lantop_state=lantop.setstatesafe:main",
+            "gcal_import=lantop.gcalimport.cli:main"
         ]
     },
 
