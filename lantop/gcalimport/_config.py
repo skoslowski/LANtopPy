@@ -32,14 +32,12 @@ CONFIG = {
     ############################################################
     # Cron settings
     ############################################################
-    'cron': {
-        # crontab file path to save output
-        'file': '/etc/cron.d/lantop_set_state',
-        # user for cron jobs
-        'user': 'root',
-        # path to lantop cli
-        'cmd': '/usr/local/bin/lantop',
-        # argument template to the above command
-        'arg': u'--state {channel:d}:{state:s}'
-    }
+    # crontab file path to save output
+    'cron_file': '/etc/cron.d/lantop_set_state',
+    # user for cron jobs
+    'cron_user': 'root',
+    # lantop cli command line
+    'cron_cmd': '/usr/local/bin/lantop {args} --retries 5 --quiet',
+    # argument template to the above command
+    'cron_arg': u'--state {channel:d}:{state:s}'
 }

@@ -65,7 +65,7 @@ def main():
 
     # all good till here? Write triggers to file
     try:
-        with open(CONFIG['cron']['file'], 'w') as fp:
+        with open(CONFIG['cron_file'], 'w') as fp:
             fp.write("# LANtopPy actions - generated from google calendar\n")
             fp.write("\n".join(entries))
     except IOError:

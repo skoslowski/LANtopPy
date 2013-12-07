@@ -4,25 +4,25 @@
 import re
 from datetime import timedelta
 
-from ._config import CONFIG
+from . _config import CONFIG
 
 
 class LantopCronAction(object):
     """A crontab entry for lantop commands"""
 
-    def __init__(self, time, args, comment, user=None):
+    def __init__(self, time, args, comment=u"", user=None):
         """Set parameters and format args for CronEvent"""
         self.time = time
         self.comment = comment
         self.args = args
-        self.user = user or CONFIG['cron']['user']
+        self.user = user or CONFIG['cron_user']
 
     def __unicode__(self):
         """Format entry for crontab"""
-        command = CONFIG['cron']['cmd'] + u" " + u" ".join(
-            CONFIG['cron']['args'].format(channel=ch, state=st)
+        command = CONFIG['cron_cmd'].format(args=u" ".join(
+            CONFIG['cron_arg'].format(channel=ch, state=st)
             for ch, st in self.args.iteritems()
-        )
+        ))
         output = u"{:%M %H %d %m *}\t{}\t{}".format(
             self.time, self.user, command, self.comment)
         if self.comment:
@@ -37,7 +37,9 @@ class LantopCronAction(object):
     def __iadd__(self, other):
         """Append others args and combine comment"""
         self.args.update(other.args)
-        self.comment = u"{} + {}".format(self.comment, other.comment)
+        if self.comment != other.comment:
+            self.comment = u"{} + {}".format(self.comment, other.comment)
+        return self
 
     def __eq__(self, other):
         return self.__class__ == other.__class__ and \
@@ -111,4 +113,4 @@ def get_combined_actions(events):
             actions[action.time] += action
         except KeyError:
             actions[action.time] = action
-    return actions.values()
+    return sorted(actions.values(), key=lambda a: a.time)
