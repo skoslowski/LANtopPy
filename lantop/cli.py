@@ -16,7 +16,8 @@ import argparse
 
 from . import __version__
 from . lantop import Lantop, LantopException, CONTROL_MODES, TIMED_STATE_LABELS
-from . _config import LANTOP_CONF_PATH
+from . _config import LANTOP_CONF_PATH, LOCK_COUNTERS_FILE
+from . lock_counts import LockCounts
 
 
 def set_state_type(value):
@@ -125,7 +126,7 @@ def parse_args(args):
     return options
 
 
-def change_device_states_or_time(device, options, logger):
+def change_device_states_or_time(device, options, locks, logger):
     """Change the state of a channel, the time, ... if requested"""
     add_spacer = False
 
@@ -155,12 +156,39 @@ def change_device_states_or_time(device, options, logger):
 
     # set state
     if options.set_states:
-        for set_state in options.set_states:
-            duration = options.duration if set_state[1] in TIMED_STATE_LABELS \
+        for channel, state in options.set_states:
+            # handle temporary states (finite duration)
+            duration = options.duration if state in TIMED_STATE_LABELS \
                 else None
-            device.set_state(*set_state, duration=duration)
-            log_str = "Set channel {0:d} to state {1}{dur}.".format(
-                *set_state, dur=" for " + str(duration) if duration else "")
+
+            if duration is not None:
+                device.set_state(channel. state, duration)
+                log_str = "Set channel {} to state {} for {}".format(
+                    channel, state, str(duration))
+            else:
+                # indefinite state changes with locks
+                # ...flat is better than nested...ups...
+                locks[channel] += 1 if state == 'on' else -1
+
+                if locks[channel] == 1 and state == 'on':
+                    device.set_state(channel, 'on')
+                    log_str = "Set channel {} to state on.".format(channel)
+                elif locks[channel] <= 0 and state == 'auto':
+                    device.set_state(channel, 'auto')
+                    log_str = "Set channel {} to state auto.".format(channel)
+                elif state == 'off':
+                    device.set_state(channel, 'off')
+                    locks[channel] = 0
+                    log_str = "Set channel {} to state off.".format(channel)
+                else:
+                    log_str = "Channel {} unchanged due to locks.".format(channel)
+
+                if locks[channel] < 0:
+                    locks[channel] = 0
+                    logger.warning('Negative count on channel %d', channel)
+
+                logger.info("New lock counters " + str(locks))
+
             logger.info(log_str)
             if not options.be_quiet:
                 add_spacer = True
@@ -191,11 +219,11 @@ def get_and_print_device_info(device, options):
               *device.get_extra_info()))
 
 
-def get_and_print_overview(device, options):
-    """Request channel specific data and arange it in a table"""
+def get_and_print_overview(device, options, locks):
+    """Request channel specific data and arrange it in a table"""
     states = device.get_states()
     # table header
-    header = 'CH Name          State Reason      Active Service Switches'
+    header = 'CH Name          State Locks Reason      Active Service Switches'
     if options.extra_info:
         header += '    (since)'
     print(header)
@@ -204,19 +232,20 @@ def get_and_print_overview(device, options):
         name = device.get_channel_name(channel)
         state = 'On' if states[channel]['active'] else 'Off'
         stats = device.get_channel_stats(channel)
-        fmt = '{index:1d}  {:13} {:5s} {reason:10s} {:6.1f}h {:6.1f}h {:8d}'
+        fmt = '{index:1d}  {:13} {:5s} {:5d} {reason:10s} {:6.1f}h {:6.1f}h {:8d}'
         if options.extra_info:
             fmt += ' {:%d.%m.%Y}'
-        print(fmt.format(name, state, *stats, **states[channel]))
+        print(fmt.format(name, state, locks[channel], *stats, **states[channel]))
 
 
 def get_logger(name):
     """Load logging settings from file"""
-    logging_config_file = os.path.expanduser(
-        os.path.join(LANTOP_CONF_PATH, 'logging.json'))
+    logging_config_file = os.path.join(LANTOP_CONF_PATH, 'logging.json')
     if os.path.exists(logging_config_file):
         with open(logging_config_file, 'r') as fp:
             logging.config.dictConfig(json.load(fp))
+    #logging_config_file = os.path.join(LANTOP_CONF_PATH, 'logging.conf')
+    #logging.config.fileConfig(logging_config_file)
     logger = logging.getLogger(name)
     logger.addHandler(logging.NullHandler())
     return logger
@@ -243,14 +272,17 @@ def main(args=None):
         else:
             raise LantopException("Could not connect to LANtop2")
 
+        # get lock counts
+        locks = LockCounts(LOCK_COUNTERS_FILE, logger)
+
         # set stuff
-        change_device_states_or_time(device, options, logger)
+        change_device_states_or_time(device, options, locks, logger)
 
         # print overview
         if not options.be_quiet:
             get_and_print_device_info(device, options)
             print('')
-            get_and_print_overview(device, options)
+            get_and_print_overview(device, options, locks)
 
     except LantopException as err:
         logger.error(err.message)

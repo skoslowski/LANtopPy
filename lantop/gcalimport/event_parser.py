@@ -26,7 +26,7 @@ class LantopCronAction(object):
         output = u"{:%M %H %d %m *}\t{}\t{}".format(
             self.time, self.user, command, self.comment)
         if self.comment:
-            output += u"\t# {}".format(self.comment)
+            output = u"# {}\n{}".format(self.comment, output)
         return output
 
     def __repr__(self):

@@ -37,7 +37,7 @@ CONFIG = {
     # user for cron jobs
     'cron_user': 'root',
     # lantop cli command line
-    'cron_cmd': '/usr/local/bin/lantop {args} --retries 5 --quiet',
+    'cron_cmd': '/usr/local/bin/lantop --state {args} --retries 5 --quiet',
     # argument template to the above command
-    'cron_arg': u'--state {channel:d}:{state:s}'
+    'cron_arg': u'{channel:d}:{state:4s}'
 }

@@ -2,19 +2,9 @@
 """Config value(s) for lantop client API and CLI"""
 
 # where settings for the CLI are stored (only the default IP so far)
-LANTOP_CONF_PATH = '~/.config/lantop/'
+LANTOP_CONF_PATH = '/etc/lantop/'
 
-CONFIG = {
-    # issue a warning if the state counter have not been modified for a while
-    # -1 to disable
-    'mod_time_warning': 3,  # days
-
-    # where to keep the channel state counters
-    'state_counts_file': 'states', #'/var/lib/lantop_state',
-
-    # num of channels
-    'num_channels': 4,
-}
+LOCK_COUNTERS_FILE = '/var/lib/lantop_state'
 
 ############################################################
 # The following are rather consts than configurable values

@@ -13,13 +13,13 @@ from . event_parser import get_combined_actions
 
 from . _config import CONFIG
 from .. _config import LANTOP_CONF_PATH
+from .. cli import get_logger
 
 
 def load_config():
     """Define and parse command line options"""
     config_file = os.path.expanduser(
         os.path.join(LANTOP_CONF_PATH, 'gcal_import.json'))
-
     try:
         with open(config_file, 'r') as fp:
             CONFIG.update(json.load(fp))
@@ -30,15 +30,7 @@ def load_config():
 def main():
     """get event and generate crontab"""
     load_config()
-
-    # get logger
-    logging_config_file = os.path.expanduser(
-        os.path.join(LANTOP_CONF_PATH, 'logging.json'))
-    if os.path.exists(logging_config_file):
-        with open(logging_config_file, 'r') as fp:
-            logging.config.dictConfig(json.load(fp))
-    logger = logging.getLogger('lantop.gcal_import')
-    logger.addHandler(logging.NullHandler())
+    logger = get_logger('lantop.gcal_import')
 
     # get events from Google Calendar
     now = datetime.now(tzlocal())
@@ -57,6 +49,7 @@ def main():
                    for action in get_combined_actions(events)
                    if action.time > now]
         logger.info("Imported %d actions from google calendar", len(entries))
+        print "import", len(entries)
 
     except Exception as e:
         logger.exception(e)
@@ -67,7 +60,7 @@ def main():
     try:
         with open(CONFIG['cron_file'], 'w') as fp:
             fp.write("# LANtopPy actions - generated from google calendar\n")
-            fp.write("\n".join(entries))
+            fp.write("\n".join(entries) + "\n")
     except IOError:
         logger.error("Could not write to crontab file")
         return 1
