@@ -107,10 +107,20 @@ def extract_actions(events, channels):
 
 
 def get_combined_actions(events):
+    """Combine actions triggered at the same time"""
     actions = {}
     for action in extract_actions(events, CONFIG['channels']):
         try:
             actions[action.time] += action
         except KeyError:
             actions[action.time] = action
-    return sorted(actions.values(), key=lambda a: a.time)
+    # put the combined actions (unique times) in a sorted list
+    action_list = sorted(actions.values(), key=lambda a: a.time)
+    # remove duplicate comments in consecutive lists
+    last_comment = None
+    for action in action_list:
+        if action.comment == last_comment:
+            action.comment = None
+        else:
+            last_comment = action.comment
+    return action_list
