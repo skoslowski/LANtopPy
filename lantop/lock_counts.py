@@ -41,20 +41,20 @@ class LockCounts(object):
             if mod_time_max > 0 and \
                datetime.now() - mod_time > timedelta(days=mod_time_max):
                 self.logger.warning(
-                    'State file was not modified in the last %d days.',
+                    "State file was not modified in the last %d days.",
                     mod_time_max)
             # load counts
-            with open(self.filename, 'r') as fp:
+            with open(self.filename, "r") as fp:
                 counts = json.load(fp)
             # check consistency
             if len(counts) < self.max_channels:
                 counts = (counts + [0] * self.max_channels)[:self.max_channels]
-                self.logger.warning('States file did not contain %d entries',
+                self.logger.warning("States file did not contain %d entries",
                                self.max_channels)
 
         except (os.error, TypeError, ValueError, IOError):
             self.logger.warning(
-                'Could not access or open state file, using all zeros')
+                "Could not access or open state file, using all zeros")
             counts = [0] * self.max_channels
 
         self._counts = counts
@@ -63,8 +63,8 @@ class LockCounts(object):
         """Store updated channel state counts to file"""
         if force or self.modified:
             try:
-                with open(self.filename, 'w') as fp:
+                with open(self.filename, "w") as fp:
                     json.dump(self._counts, fp)
                 self.modified = False
             except IOError:
-                raise RuntimeError('Could not write states file')
+                raise RuntimeError("Could not write states file")

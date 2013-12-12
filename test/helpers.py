@@ -30,11 +30,11 @@ class LantopEmulator(threading.Thread):
         self.running = False
 
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self._socket.bind(address or ('localhost', 0))
+        self._socket.bind(address or ("localhost", 0))
         self.server_address = self._socket.getsockname()
 
         self.resp_dict = resp_dict or {}
-        self.last_msg = ''
+        self.last_msg = ""
 
     def start(self):
         """Start server thread"""
@@ -57,7 +57,7 @@ class LantopEmulator(threading.Thread):
                 if type(msg) is dict:
                     msg = msg[data[7:]]
                 csocket.sendall(
-                    struct.pack('B%ds' % (len(msg),), len(msg) + 32, msg))
+                    struct.pack("B%ds" % (len(msg),), len(msg) + 32, msg))
 
             except KeyError:
                 # Unknown message...

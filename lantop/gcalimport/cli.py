@@ -2,8 +2,6 @@
 """Get triggers from Google Calendar and format them for cron"""
 
 import os
-import logging
-import logging.config
 from datetime import datetime, timedelta
 from dateutil.tz import tzlocal
 import json
@@ -19,9 +17,9 @@ from .. cli import get_logger
 def load_config():
     """Define and parse command line options"""
     config_file = os.path.expanduser(
-        os.path.join(LANTOP_CONF_PATH, 'gcal_import.json'))
+        os.path.join(LANTOP_CONF_PATH, "gcal_import.json"))
     try:
-        with open(config_file, 'r') as fp:
+        with open(config_file, "r") as fp:
             CONFIG.update(json.load(fp))
     except (IOError, ValueError):
         pass
@@ -30,15 +28,15 @@ def load_config():
 def main():
     """get event and generate crontab"""
     load_config()
-    logger = get_logger('lantop.gcal_import')
+    logger = get_logger("lantop.gcal_import")
 
     # get events from Google Calendar
     now = datetime.now(tzlocal())
     try:
         gcal = GCalEventImporter()
-        gcal.select_calendar(CONFIG['calendar_name'])
+        gcal.select_calendar(CONFIG["calendar_name"])
         events = gcal.get_events(now - timedelta(days=1),
-                                 now + timedelta(days=CONFIG['time_span']))
+                                 now + timedelta(days=CONFIG["time_span"]))
     except GCalEventError as err:
         logger.exception(err)
         return 1
@@ -58,7 +56,7 @@ def main():
 
     # all good till here? Write triggers to file
     try:
-        with open(CONFIG['cron_file'], 'w') as fp:
+        with open(CONFIG["cron_file"], "w") as fp:
             fp.write("# LANtopPy actions - generated from google calendar\n")
             fp.write("\n".join(entries) + "\n")
     except IOError:

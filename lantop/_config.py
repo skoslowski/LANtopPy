@@ -2,9 +2,9 @@
 """Config value(s) for lantop client API and CLI"""
 
 # where settings for the CLI are stored (only the default IP so far)
-LANTOP_CONF_PATH = '/etc/lantop/'
+LANTOP_CONF_PATH = "/etc/lantop/"
 
-LOCK_COUNTERS_FILE = '/var/lib/lantop_state'
+LOCK_COUNTERS_FILE = "/var/lib/lantop_state"
 
 ############################################################
 # The following are rather consts than configurable values
@@ -29,10 +29,10 @@ STATE_REASONS = ("Auto", "Auto", "Auto", "Zufall 2", "Zufall 1", "Impuls",
                  "Sonder 13", "Sonder 14", "Service")
 
 # Map the possible channel control modes (states) to their commend code
-CONTROL_MODES = {'on': 2, 'off': 1, 'auto': 3, 'manual': 0}
+CONTROL_MODES = {"on": 2, "off": 1, "auto": 3, "manual": 0}
 
 # For timed state changed only on and off are available
-TIMED_STATE_LABELS = {'on': 1, 'off': 0}
+TIMED_STATE_LABELS = {"on": 1, "off": 0}
 
 # Labels for the error codes returned by the device
 ERROR_NAMES = (" ", "UHR NICHT BEREIT", "UNGUELTIGER BEFEHL", "ADRESS-FEHLER",

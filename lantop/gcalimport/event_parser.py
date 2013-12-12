@@ -15,12 +15,12 @@ class LantopCronAction(object):
         self.time = time
         self.comment = comment
         self.args = args
-        self.user = user or CONFIG['cron_user']
+        self.user = user or CONFIG["cron_user"]
 
     def __unicode__(self):
         """Format entry for crontab"""
-        command = CONFIG['cron_cmd'].format(args=u" ".join(
-            CONFIG['cron_arg'].format(channel=ch, state=st)
+        command = CONFIG["cron_cmd"].format(args=u" ".join(
+            CONFIG["cron_arg"].format(channel=ch, state=st)
             for ch, st in self.args.iteritems()
         ))
         output = u"{:%M %H %d %m *}\t{}\t{}".format(
@@ -30,7 +30,7 @@ class LantopCronAction(object):
         return output
 
     def __repr__(self):
-        return '{}(time={}, args={}, comment="{}")'.format(
+        return "{}(time={}, args={}, comment=\"{}\")".format(
             self.__class__.__name__, repr(self.time),
             repr(self.args), self.comment)
 
@@ -59,11 +59,11 @@ def extract_actions_from_desc(event, channels):
     :param channels: mapping of channel label to their respective index
 
     """
-    prog = re.compile(u'(' + u'|'.join(channels.keys()) + u')' +  # channels
-                      u'([+-][0-9]+)?([+-][0-9]+)?',              # offsets
+    prog = re.compile(u"(" + u"|".join(channels.keys()) + u")" +  # channels
+                      u"([+-][0-9]+)?([+-][0-9]+)?",              # offsets
                       re.I | re.U)
 
-    for match in prog.findall(event['description']):
+    for match in prog.findall(event["description"]):
         name = match[0].lower()
         index = channels[name]
         offset_start = int(match[1]) \
@@ -71,11 +71,11 @@ def extract_actions_from_desc(event, channels):
         offset_end = int(match[2]) \
             if len(match) > 2 and len(match[2]) > 0 else 0
 
-        start = event['start'] + timedelta(minutes=offset_start)
-        end = event['end'] + timedelta(minutes=offset_end)
+        start = event["start"] + timedelta(minutes=offset_start)
+        end = event["end"] + timedelta(minutes=offset_end)
         if start < end:
-            yield LantopCronAction(start, {index: u'on'}, event['summary'])
-            yield LantopCronAction(end, {index: u'auto'}, event['summary'])
+            yield LantopCronAction(start, {index: u"on"}, event["summary"])
+            yield LantopCronAction(end, {index: u"auto"}, event["summary"])
 
 
 def extract_actions(events, channels):
@@ -93,11 +93,11 @@ def extract_actions(events, channels):
     for event in events:
         for name, index in channels.iteritems():
             # Check if the channel name is in the event title
-            if name in event['summary'].lower():
-                yield LantopCronAction(event['start'], {index: u'on'},
-                                       event['summary'])
-                yield LantopCronAction(event['end'], {index: u'auto'},
-                                       event['summary'])
+            if name in event["summary"].lower():
+                yield LantopCronAction(event["start"], {index: u"on"},
+                                       event["summary"])
+                yield LantopCronAction(event["end"], {index: u"auto"},
+                                       event["summary"])
                 break  # only one channel per event
         else:
             # if no channel names in event title, try to parse its description
@@ -109,7 +109,7 @@ def extract_actions(events, channels):
 def get_combined_actions(events):
     """Combine actions triggered at the same time"""
     actions = {}
-    for action in extract_actions(events, CONFIG['channels']):
+    for action in extract_actions(events, CONFIG["channels"]):
         try:
             actions[action.time] += action
         except KeyError:
