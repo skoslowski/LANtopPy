@@ -1,4 +1,2 @@
 python-dateutil
-oauth2client
-apiclient
-httplib2
+google-api-python-client

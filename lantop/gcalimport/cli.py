@@ -47,7 +47,6 @@ def main():
                    for action in get_combined_actions(events)
                    if action.time > now]
         logger.info("Imported %d actions from google calendar", len(entries))
-        print "import", len(entries)
 
     except Exception as e:
         logger.exception(e)

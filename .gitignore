@@ -1,3 +1,5 @@
 *.pyc
 *.log
 _version.py
+*.egg-info/
+build
