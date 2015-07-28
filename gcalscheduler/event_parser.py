@@ -7,13 +7,13 @@ from datetime import timedelta
 from . _config import CONFIG
 
 
-class LantopCronAction(object):
+class Action(object):
     """A crontab entry for lantop commands"""
 
-    def __init__(self, time, args, comment=u"", user=None):
+    def __init__(self, time, args, label=u"", user=None):
         """Set parameters and format args for CronEvent"""
         self.time = time
-        self.comment = comment
+        self.label = label
         self.args = args
         self.user = user or CONFIG["cron_user"]
 
@@ -24,26 +24,26 @@ class LantopCronAction(object):
             for ch, st in self.args.iteritems()
         ))
         output = u"{:%M %H %d %m *}\t{}\t{}".format(
-            self.time, self.user, command, self.comment)
-        if self.comment:
-            output = u"# {}\n{}".format(self.comment, output)
+            self.time, self.user, command, self.label)
+        if self.label:
+            output = u"# {}\n{}".format(self.label, output)
         return output
 
     def __repr__(self):
         return "{}(time={}, args={}, comment=\"{}\")".format(
             self.__class__.__name__, repr(self.time),
-            repr(self.args), self.comment)
+            repr(self.args), self.label)
 
     def __iadd__(self, other):
         """Append others args and combine comment"""
         self.args.update(other.args)
-        if self.comment != other.comment:
-            self.comment = u"{} + {}".format(self.comment, other.comment)
+        if self.label != other.label:
+            self.label = u"{} + {}".format(self.label, other.label)
         return self
 
     def __eq__(self, other):
         return self.__class__ == other.__class__ and \
-            self.time == other.time and self.comment == other.comment and \
+            self.time == other.time and self.label == other.label and \
             self.args == other.args and self.user == other.user
 
 
@@ -74,8 +74,8 @@ def extract_actions_from_desc(event, channels):
         start = event["start"] + timedelta(minutes=offset_start)
         end = event["end"] + timedelta(minutes=offset_end)
         if start < end:
-            yield LantopCronAction(start, {index: u"on"}, event["summary"])
-            yield LantopCronAction(end, {index: u"auto"}, event["summary"])
+            yield Action(start, {index: u"on"}, event["summary"])
+            yield Action(end, {index: u"auto"}, event["summary"])
 
 
 def extract_actions(events, channels):
@@ -94,10 +94,8 @@ def extract_actions(events, channels):
         for name, index in channels.iteritems():
             # Check if the channel name is in the event title
             if name in event["summary"].lower():
-                yield LantopCronAction(event["start"], {index: u"on"},
-                                       event["summary"])
-                yield LantopCronAction(event["end"], {index: u"auto"},
-                                       event["summary"])
+                yield Action(event["start"], {index: u"on"}, event["summary"])
+                yield Action(event["end"], {index: u"auto"}, event["summary"])
                 break  # only one channel per event
         else:
             # if no channel names in event title, try to parse its description
@@ -117,10 +115,10 @@ def get_combined_actions(events):
     # put the combined actions (unique times) in a sorted list
     action_list = sorted(actions.values(), key=lambda a: a.time)
     # remove duplicate comments in consecutive lists
-    last_comment = None
-    for action in action_list:
-        if action.comment == last_comment:
-            action.comment = None
-        else:
-            last_comment = action.comment
+    # last_comment = None
+    # for action in action_list:
+    #     if action.comment == last_comment:
+    #         action.comment = None
+    #     else:
+    #         last_comment = action.comment
     return action_list

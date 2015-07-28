@@ -31,8 +31,9 @@ class LantopEmulator(threading.Thread):
 
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._socket.bind(address or ("localhost", 0))
-        self.server_address = self._socket.getsockname()
+        self._socket.listen(1)
 
+        self.server_address = self._socket.getsockname()
         self.resp_dict = resp_dict or {}
         self.last_msg = ""
 
@@ -43,8 +44,6 @@ class LantopEmulator(threading.Thread):
 
     def run(self):
         """Accept connections. Send reply according to DATA dict variable"""
-        self._socket.listen(1)
-
         csocket, caddr = self._socket.accept()
         while self.running:
             data = csocket.recv(1024)
@@ -65,6 +64,7 @@ class LantopEmulator(threading.Thread):
                 pass
 
         self._socket.close()
+        self.running = False
 
     def stop(self):
         """Shutdown server thread"""

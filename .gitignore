@@ -3,3 +3,5 @@
 _version.py
 *.egg-info/
 build
+
+.venv

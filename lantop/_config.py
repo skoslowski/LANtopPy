@@ -2,7 +2,7 @@
 """Config value(s) for lantop client API and CLI"""
 
 # where settings for the CLI are stored (only the default IP so far)
-LANTOP_CONF_PATH = "/etc/lantop/"
+LANTOP_CONF_PATH = "~/.config/lantop/"
 
 LOCK_COUNTERS_FILE = "/var/lib/lantop_state"
 
@@ -10,6 +10,7 @@ LOCK_COUNTERS_FILE = "/var/lib/lantop_state"
 # The following are rather consts than configurable values
 # Change the Labels freely, but keep the lengths the same
 ############################################################
+DEFAULT_PORT = 10001
 
 # Label and number of channels of possible devices (index by their id)
 DEVICE_TYPES = {0x06: ("TR 641 top2 RC", 1),

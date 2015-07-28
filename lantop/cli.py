@@ -14,8 +14,8 @@ import logging.config
 
 import argparse
 
-from . import __version__
-from . lantop import Lantop, LantopException, CONTROL_MODES, TIMED_STATE_LABELS
+from . import __version__, utils
+from . lantop import Lantop, LantopError, CONTROL_MODES, TIMED_STATE_LABELS
 from . _config import LANTOP_CONF_PATH, LOCK_COUNTERS_FILE
 from . lock_counts import LockCounts
 
@@ -62,14 +62,7 @@ def dev_addr_type(value):
 
 def parse_args(args):
     """Define and parse command line options"""
-
-    config_file = os.path.expanduser(
-        os.path.join(LANTOP_CONF_PATH, "dev_addr.json"))
-    try:
-        with open(config_file, "r") as fp:
-            dev_addr = json.load(fp)
-    except (IOError, ValueError):
-        dev_addr = None
+    dev_addr = utils.get_dev_addr()
 
     parser = argparse.ArgumentParser(description="Get and set LANtop2 state, "
                                                  "settings and statistics")
@@ -113,15 +106,7 @@ def parse_args(args):
 
     # get/set default ip:port if available
     if options.set_default_addr:
-        directory = os.path.dirname(config_file)
-        if not os.path.exists(directory):
-            os.makedirs(directory)
-        try:
-            with open(config_file, "w") as fp:
-                json.dump(options.dev_addr, fp)
-        except IOError:
-            sys.stderr.write("Failed to set default address\n\n")
-            pass
+        utils.set_dev_addr(options.dev_addr)
 
     return options
 
@@ -244,8 +229,6 @@ def get_logger(name):
     if os.path.exists(logging_config_file):
         with open(logging_config_file, "r") as fp:
             logging.config.dictConfig(json.load(fp))
-    #logging_config_file = os.path.join(LANTOP_CONF_PATH, "logging.conf")
-    #logging.config.fileConfig(logging_config_file)
     logger = logging.getLogger(name)
     logger.addHandler(logging.NullHandler())
     return logger
@@ -267,10 +250,10 @@ def main(args=None):
             try:
                 device = Lantop(*options.dev_addr)
                 break
-            except LantopException:
+            except LantopError:
                 sleep(random.uniform(1, 5))
         else:
-            raise LantopException("Could not connect to LANtop2")
+            raise LantopError("Could not connect to LANtop2")
 
         # get lock counts
         locks = LockCounts(LOCK_COUNTERS_FILE, logger)
@@ -284,7 +267,7 @@ def main(args=None):
             print("")
             get_and_print_overview(device, options, locks)
 
-    except LantopException as err:
+    except LantopError as err:
         logger.error(err.message)
         if not options.be_quiet:
             sys.stderr.write(err.message + "\n")

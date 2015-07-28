@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 """Config values for gcalimport package"""
 
+from lantop import LANTOP_CONF_PATH
+
+
 CONFIG = {
     ############################################################
     # Event importer
@@ -20,6 +23,7 @@ CONFIG = {
     ############################################################
     # Google Calendar API
     ############################################################
+    "credentials_storage_path": LANTOP_CONF_PATH,
     "api_params": {
         "client_id": "",
         "client_secret": "",

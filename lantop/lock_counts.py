@@ -4,16 +4,19 @@
 
 import os
 import json
+import logging
 from datetime import datetime, timedelta
+
+from . _config import LOCK_COUNTERS_FILE
 
 
 class LockCounts(object):
     """Read/write the channel state counters from/to file"""
     max_channels = 8
 
-    def __init__(self, filename, logger):
-        self.filename = filename
-        self.logger = logger
+    def __init__(self, filename=None, logger=None):
+        self.filename = filename or LOCK_COUNTERS_FILE
+        self.logger = logger or logging.getLogger(__name__)
 
         self._counts = None
         self.modified = False
@@ -31,6 +34,12 @@ class LockCounts(object):
 
     def __str__(self):
         return str(self._counts)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.save()
 
     def load(self):
         """Load counts from file"""
@@ -68,3 +77,26 @@ class LockCounts(object):
                 self.modified = False
             except IOError:
                 raise RuntimeError("Could not write states file")
+
+    def apply_new_state(self, applyfunc, channel, state):
+        logger = self.logger
+        self[channel] += 1 if state == "on" else -1
+
+        if self[channel] == 1 and state == "on":
+            applyfunc(channel, "on")
+            logger.info("Set channel {} to state on.".format(channel))
+        elif self[channel] <= 0 and state == "auto":
+            applyfunc(channel, "auto")
+            logger.info("Set channel {} to state auto.".format(channel))
+        elif state == "off":
+            applyfunc(channel, "off")
+            self[channel] = 0
+            logger.info("Set channel {} to state off.".format(channel))
+        else:
+            logger.info("Channel {} unchanged (locked).".format(channel))
+
+        if self[channel] < 0:
+            self[channel] = 0
+            logger.warning("Negative count on channel %d", channel)
+
+        logger.debug("Lock counters changed to {}".format(self))

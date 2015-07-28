@@ -10,8 +10,8 @@ from . event_importer import GCalEventImporter, GCalEventError
 from . event_parser import get_combined_actions
 
 from . _config import CONFIG
-from .. _config import LANTOP_CONF_PATH
-from .. cli import get_logger
+from lantop import LANTOP_CONF_PATH
+from lantop.cli import get_logger
 
 
 def load_config():

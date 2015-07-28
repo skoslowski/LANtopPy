@@ -6,12 +6,52 @@ import unittest
 from datetime import datetime, timedelta
 from helpers import LantopEmulator
 
-from lantop import Lantop, LantopException
+from lantop.lantop import Lantop, LantopSocketTransport, LantopError
 
 from _data import TEST_DATA
 
 
+class LantopTransportTest(unittest.TestCase):
+
+    def setUp(self):
+        unittest.TestCase.setUp(self)
+        self.server = LantopEmulator(resp_dict=TEST_DATA)
+        self.server.start()
+        self.tp = LantopSocketTransport(*self.server.server_address)
+
+    def tearDown(self):
+        self.tp.close()
+        self.server.stop()
+        del self.server
+
+    def test_command_error_code(self):
+        with self.assertRaises(LantopError) as cm:
+            self.tp.command("xxxxxx0", "xx")
+        self.assertEqual("Got unknown error code", cm.exception.message)
+
+    def test_request_channel_wrong(self):
+        with self.assertRaises(LantopError) as cm:
+            self.tp.request("xxxxxx0", "xx", channel=9)
+        self.assertEqual("Invalid channel index given", cm.exception.message)
+
+    def test_command_error_code2(self):
+        with self.assertRaises(LantopError) as cm:
+            self.tp.command("xxxxxx1", "xx")
+        self.assertEqual("Got UNGUELTIGER BEFEHL", cm.exception.message)
+
+    def test_command_decode(self):
+        with self.assertRaises(LantopError) as cm:
+            self.tp.command("xxxxxx2", "xx")
+        self.assertEqual("Message can not be decoded", cm.exception.message)
+
+    def test_command_resp_code(self):
+        with self.assertRaises(LantopError) as cm:
+            self.tp.command("xxxxxx0", "xy")
+        self.assertEqual("Wrong response code", cm.exception.message)
+
+
 class LantopTest(unittest.TestCase):
+
     def setUp(self):
         unittest.TestCase.setUp(self)
         self.server = LantopEmulator(resp_dict=TEST_DATA)
@@ -22,33 +62,6 @@ class LantopTest(unittest.TestCase):
         del self.lt
         self.server.stop()
         del self.server
-
-    def test_command_error_code(self):
-        with self.assertRaises(LantopException) as cm:
-            self.lt._command("xxxxxx0", "xx")
-        self.assertEqual("Device returned an unknown error code",
-                         cm.exception.message)
-
-    def test_request_channel_wrong(self):
-        with self.assertRaises(LantopException) as cm:
-            self.lt._request("xxxxxx0", "xx", channel=9)
-        self.assertEqual("Invalid channel index given", cm.exception.message)
-
-    def test_command_error_code2(self):
-        with self.assertRaises(LantopException) as cm:
-            self.lt._command("xxxxxx1", "xx")
-        self.assertEqual("Device returned UNGUELTIGER BEFEHL",
-                         cm.exception.message)
-
-    def test_command_decode(self):
-        with self.assertRaises(LantopException) as cm:
-            self.lt._command("xxxxxx2", "xx")
-        self.assertEqual("Message can not be decoded", cm.exception.message)
-
-    def test_command_resp_code(self):
-        with self.assertRaises(LantopException) as cm:
-            self.lt._command("xxxxxx0", "xy")
-        self.assertEqual("Wrong response code", cm.exception.message)
 
     def test_get_name(self):
         name = self.lt.get_name()
@@ -67,17 +80,17 @@ class LantopTest(unittest.TestCase):
         self.assertEqual(TEST_DATA["T046150"][1], self.server.last_msg)
 
     def test_set_pin_wrong1(self):
-        with self.assertRaises(LantopException) as cm:
+        with self.assertRaises(LantopError) as cm:
             self.lt.set_pin("12345")
         self.assertEqual("PIN must be exactly 4 numbers", cm.exception.message)
 
     def test_set_pin_wrong2(self):
-        with self.assertRaises(LantopException) as cm:
+        with self.assertRaises(LantopError) as cm:
             self.lt.set_pin("abcd")
         self.assertEqual("Only numeric pin allowed", cm.exception.message)
 
     def test_set_name_too_long(self):
-        with self.assertRaises(LantopException) as cm:
+        with self.assertRaises(LantopError) as cm:
             self.lt.set_name(" " * 21)
         self.assertEqual("Name too long", cm.exception.message)
 
@@ -118,7 +131,7 @@ class LantopTest(unittest.TestCase):
                          self.server.last_msg)
 
     def test_set_state_wrong(self):
-        with self.assertRaises(LantopException) as cm:
+        with self.assertRaises(LantopError) as cm:
             self.lt.set_state(3, "foo")
         self.assertEqual("Cannot parse state", cm.exception.message)
 
