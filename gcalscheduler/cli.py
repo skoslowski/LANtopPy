@@ -43,7 +43,7 @@ def main():
 
     # build cron file with data found in events
     try:
-        entries = [unicode(action).encode("UTF-8")
+        entries = [str(action).encode("UTF-8")
                    for action in get_combined_actions(events)
                    if action.time > now]
         logger.info("Imported %d actions from google calendar", len(entries))

@@ -1,150 +1,31 @@
 # -*- coding: utf-8 -*-
 """lantop client API"""
 
-import socket
 import struct
-import logging
+import base64
 from datetime import datetime, date
 
 from . _config import (
     DEVICE_TYPES, CONTROL_MODES, TIMED_STATE_LABELS,
-    ERROR_NAMES, STATE_REASONS, DEFAULT_PORT
+    STATE_REASONS
 )
-
-
-class LantopError(Exception):
-    """Exception thrown by Lantop objects"""
-    pass
-
-
-class LantopTransportError(LantopError):
-    pass
-
-
-class LantopSocketTransport(object):
-    """Connection to LANtop2 and basic protocol"""
-
-    def __init__(self, host=None, port=DEFAULT_PORT):
-        """Connect to LANtop2 module
-
-        :param host: host name or ip
-        :param port: port
-
-        """
-        self.logger = logging.getLogger("lantop.transport")
-        self._socket = None
-
-        try:
-            # name resolution
-            addr_info = socket.getaddrinfo(host, port,
-                                           socket.AF_INET, 0, socket.SOL_TCP)
-            if len(addr_info) == 0:
-                raise LantopTransportError("Could not find LANtop2")
-
-            family, socktype, proto, canonname, sockaddr = addr_info[0]
-
-            self._socket = socket.socket(family, socktype, proto)
-            self._socket.settimeout(4.0)  # same as Theben software
-            self._socket.connect(sockaddr)
-            self.logger.debug("Connected to %s:%d", host, port)
-        except:
-            raise LantopTransportError("Could not connect to LANtop2")
-
-    def close(self):
-        """Disconnect from LANtop2"""
-        if self._socket:
-            self._socket.close()
-            self._socket = None
-
-    def _send(self, req_code, channel=None, args=""):
-        """Generic send method to send a command to LANtop
-
-        :param req_code: request/command header code
-        :param channel: zero-based channel index (or None)
-        :param args: custom request payload
-
-        """
-        # Command structure: req_code [channel] args
-        command = req_code
-        if channel is not None:
-            command += hex(channel)[2:].upper().rjust(2, "0")
-        command += args
-        self.logger.debug("Sending command %s", command)
-        self._socket.sendall(command)
-
-    def _receive(self):
-        """Receive msg from LANtop (length followed by data)
-
-        :throws LantopException: If a message cannot be received
-        :returns: the received message
-
-        """
-        try:
-            message_len = ord(self._socket.recv(1)[0]) - 32
-            message = self._socket.recv(message_len)
-            assert len(message) == message_len
-            self.logger.debug("Got response %s", message)
-            return message
-
-        except:
-            raise LantopError("Could not read from LANtop2")
-
-    def request(self, req_code, resp_code, channel=None, args=""):
-        """Combined send and receive (decode) method
-
-        :param req_code: request/command header code
-        :param resp_code: excepted response header code
-        :param channel: zero-based channel index (or None)
-        :param args: custom request payload
-
-        :returns: response payload
-
-        """
-        if channel is not None and not 0 <= channel < 8:
-            raise LantopError("Invalid channel index given")
-
-        # issue command
-        self._send(req_code, channel, args)
-        # get and check response
-        data = self._receive()
-        if len(data) < len(resp_code):
-            raise LantopError("Invalid message")
-        try:
-            data = data.decode("hex")
-        except TypeError:
-            raise LantopTransportError("Message can not be decoded")
-        if not resp_code == data[:len(resp_code)]:
-            raise LantopTransportError("Wrong response code")
-        payload = data[len(resp_code):]
-        return payload
-
-    def command(self, req_code, resp_code, channel=None, args=""):
-        """Issue command and check resulting error code
-
-        :param req_code: request/command header code
-        :param resp_code: excepted response header code
-        :param channel: zero-based channel index (or None)
-        :param args: custom request payload
-
-        """
-        msg = self.request(req_code, resp_code, channel, args)
-        code = ord(msg[0])
-        if code != 0:
-            try:
-                raise LantopTransportError("Got " + ERROR_NAMES[code])
-            except IndexError:
-                raise LantopTransportError("Got unknown error code")
-
-    def __del__(self):
-        self.close()
+from .transport import Transport
+from .errors import LantopError
 
 
 class Lantop(object):
     """Client API for Theben LANtop2 module"""
 
-    def __init__(self, host=None, port=DEFAULT_PORT):
-        self.tp = LantopSocketTransport(host, port) if host else None
+    Transport = Transport
+
+    def __init__(self, *args, **kwargs):
         self._dev_type = None  # will be set by get_info
+        self.tp = None
+        if args or kwargs:
+            self.connect(*args, **kwargs)
+
+    def connect(self, *args, **kwargs):
+        self.tp = self.Transport(*args, **kwargs)
 
     def close(self):
         if self.tp:
@@ -170,7 +51,7 @@ class Lantop(object):
     def get_name(self):
         """Get device name"""
         msg = self.tp.request("K024E47", "kN")
-        return msg[:-1].strip()
+        return msg[:-1].decode().strip()
 
     def set_name(self, name):
         """Set name of device
@@ -178,10 +59,11 @@ class Lantop(object):
         :param name: new device name (max. 20 characters)
 
         """
+        name = name.encode()
         if len(name) > 20:
             raise LantopError("Name too long")
-        name = name.encode("hex").upper() + "00" * (21 - len(name))
-        self.tp.request("K174E53", "kN", args=name)  # not _command!
+        args = base64.b16encode(name.ljust(21, b'\0'))
+        self.tp.request("K174E53", "kN", args=args)
 
     def get_pin(self):
         """Get device PIN
@@ -190,8 +72,8 @@ class Lantop(object):
 
         """
         msg = self.tp.request("T026250", "bp")
-        pin = msg[:2].encode("hex")
-        active = (msg[2] == "\x01")
+        pin = base64.b16encode(msg[:2]).decode()
+        active = (msg[2] == 1)
         return pin, active
 
     def set_pin(self, pin="0000"):
@@ -206,7 +88,7 @@ class Lantop(object):
             raise LantopError("Only numeric pin allowed")
         if not len(pin) == 4:
             raise LantopError("PIN must be exactly 4 numbers")
-        self.tp.command("T046150", "ap", args=pin)
+        self.tp.command("T046150", "ap", args=pin.encode())
 
     def get_extra_info(self):
         """Get metadata from device
@@ -217,27 +99,27 @@ class Lantop(object):
         def extra_request(req_code, resp_code, param):
             """Special request function with support sub command codes"""
             msg = self.tp.request(req_code, resp_code, args=param)
-            code, msg = msg[:1].encode("hex"), msg[1:]
+            code, msg = base64.b16encode(msg[:1]), msg[1:]
             if not param == code:
                 raise LantopError("Wrong return code")
             return msg
         # Get Software version
-        msg = extra_request("T036249", "bi", "00")
+        msg = extra_request("T036249", "bi", b"00")
         full, frac = int(msg[:2]), int(msg[2:4])
         sw_version = full + frac / 100.0
 
         # Get battery time
-        msg = extra_request("T036249", "bi", "01")
+        msg = extra_request("T036249", "bi", b"01")
         (bat_time,) = struct.unpack("<I", msg[:4])
         bat_time /= 10.0
 
         # Get power on time
-        msg = extra_request("T036249", "bi", "02")
+        msg = extra_request("T036249", "bi", b"02")
         (pwr_on_time,) = struct.unpack("<I", msg[:4])
         pwr_on_time /= 10.0
 
         # Get power on time
-        msg = extra_request("T036249", "bi", "03")
+        msg = extra_request("T036249", "bi", b"03")
         day, month = struct.unpack("BB", msg[:2])
         (year,) = struct.unpack(">H", msg[2:4])
         pwr_on_date = date(year, month, day)
@@ -250,7 +132,7 @@ class Lantop(object):
         :returns: version number and date
 
         """
-        msg = self.tp.request("K0156", "kV")
+        msg = self.tp.request("K0156", "kV").decode()
         try:
             version = float(msg[:4])
             vdate = datetime.strptime(msg[5:13], "%Y%m%d").date()
@@ -283,7 +165,7 @@ class Lantop(object):
             new_time = datetime.now()
         args = (new_time.year - 2000, new_time.month, new_time.day,
                 new_time.hour, new_time.minute, new_time.second)
-        args = "".join((hex(c)[2:].upper().rjust(2, "0") for c in args))
+        args = b''.join((base64.b16encode(bytes([c])) for c in args))
         self.tp.command("T08615A", "a\x7A", args=args)
 
     def get_states(self):
@@ -326,7 +208,7 @@ class Lantop(object):
                 state_code = CONTROL_MODES[state]
             except:
                 raise LantopError("Cannot parse state")
-            args = hex(state_code)[2:].upper().rjust(2, "0")
+            args = base64.b16encode(bytes([state_code]))
             self.tp.command("T04614B", "ak", channel, args)
 
         else:  # keep new state only for a certain time
@@ -340,7 +222,7 @@ class Lantop(object):
             seconds = duration.seconds % 60
 
             args = (4, hours, minutes, seconds, state_code)
-            args = "".join((hex(c)[2:].upper().rjust(2, "0") for c in args))
+            args = b''.join((base64.b16encode(bytes([c])) for c in args))
             self.tp.command("T08614B", "ak", channel, args)
 
     def get_channel_name(self, channel):
@@ -350,7 +232,7 @@ class Lantop(object):
 
         """
         msg = self.tp.request("T03624E", "bn", channel=channel)
-        name = msg[1:14].strip().title()
+        name = msg[1:14].decode('UTF-8').strip().title()
         return name
 
     def get_channel_stats(self, channel):
@@ -373,4 +255,4 @@ class Lantop(object):
         :param channel: zero-based channel index
 
         """
-        self.tp.command("T046142", "ab", channel=channel, args="00")
+        self.tp.command("T046142", "ab", channel=channel, args=b'00')

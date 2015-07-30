@@ -60,7 +60,7 @@ class GCalEventImporter(object):
         if not self._calendar_id:
             raise GCalEventError("No calendar selected")
 
-        events = self.service.events().list(
+        response = self.service.events().list(
             calendarId=self._calendar_id,
             orderBy="startTime",
             singleEvents=True,
@@ -68,13 +68,13 @@ class GCalEventImporter(object):
             timeMax=end.isoformat()
         ).execute()
 
-        items = events["items"]
-        for i in range(len(items)):
+        events = response["items"]
+        for event in events:
             for what in ('start', 'end'):
-                items[i][what] = dateutil_parse(items[what]["dateTime"])
+                event[what] = dateutil_parse(event[what]["dateTime"])
 
         # check if there were more results
-        if events.get("nextPageToken"):
+        if response.get("nextPageToken"):
             raise GCalEventError("There were more")
 
-        return items
+        return events

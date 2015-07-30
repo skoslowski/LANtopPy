@@ -1,19 +1,19 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """Setup script for LANtopPy"""
 
-from __future__ import print_function
+
 import sys
 import os
 import re
 import codecs
-from subprocess import Popen, PIPE
+import subprocess
 from setuptools import setup, Command
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 
 VERSION_PY = "lantop/_version.py"
-VERSION_PY_TEMPLATE = u"""# -*- coding: utf-8 -*-
+VERSION_PY_TEMPLATE = """# -*- coding: utf-8 -*-
 # This file is originally generated from Git information by running 'setup.py
 # version'. Distribution tarballs contain a pre-generated copy of this file.
 
@@ -50,11 +50,9 @@ class Version(Command):
     @staticmethod
     def call_git_describe():
         """Get version string from git"""
-        p = Popen(["git", "describe", "--tags"], stdout=PIPE)
-        version = p.communicate()[0].strip()
-        if p.returncode != 0:
-            raise EnvironmentError()
-
+        version = subprocess.check_output(["git", "describe", "--tags"])
+        if isinstance(version, bytes):
+            version = version.decode()
         # adapt git-describe version to be in line with PEP 386
         parts = version.split("-")
         if parts[0][0] == "v":
@@ -66,7 +64,7 @@ class Version(Command):
     def to_file(version):
         """Write version to _version.py"""
         with open(os.path.join(HERE, VERSION_PY), "w") as fp:
-            fp.write(VERSION_PY_TEMPLATE.format(version).encode("UTF-8"))
+            fp.write(VERSION_PY_TEMPLATE.format(version))
 
     @staticmethod
     def from_file():

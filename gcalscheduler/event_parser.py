@@ -10,23 +10,23 @@ from . _config import CONFIG
 class Action(object):
     """A crontab entry for lantop commands"""
 
-    def __init__(self, time, args, label=u"", user=None):
+    def __init__(self, time, args, label="", user=None):
         """Set parameters and format args for CronEvent"""
         self.time = time
         self.label = label
         self.args = args
         self.user = user or CONFIG["cron_user"]
 
-    def __unicode__(self):
+    def __str__(self):
         """Format entry for crontab"""
-        command = CONFIG["cron_cmd"].format(args=u" ".join(
+        command = CONFIG["cron_cmd"].format(args=" ".join(
             CONFIG["cron_arg"].format(channel=ch, state=st)
-            for ch, st in self.args.iteritems()
+            for ch, st in self.args.items()
         ))
-        output = u"{:%M %H %d %m *}\t{}\t{}".format(
+        output = "{:%M %H %d %m *}\t{}\t{}".format(
             self.time, self.user, command, self.label)
         if self.label:
-            output = u"# {}\n{}".format(self.label, output)
+            output = "# {}\n{}".format(self.label, output)
         return output
 
     def __repr__(self):
@@ -38,7 +38,7 @@ class Action(object):
         """Append others args and combine comment"""
         self.args.update(other.args)
         if self.label != other.label:
-            self.label = u"{} + {}".format(self.label, other.label)
+            self.label = "{} + {}".format(self.label, other.label)
         return self
 
     def __eq__(self, other):
@@ -59,8 +59,8 @@ def extract_actions_from_desc(event, channels):
     :param channels: mapping of channel label to their respective index
 
     """
-    prog = re.compile(u"(" + u"|".join(channels.keys()) + u")" +  # channels
-                      u"([+-][0-9]+)?([+-][0-9]+)?",              # offsets
+    prog = re.compile("(" + "|".join(list(channels.keys())) + ")" +  # channels
+                      "([+-][0-9]+)?([+-][0-9]+)?",              # offsets
                       re.I | re.U)
 
     for match in prog.findall(event["description"]):
@@ -74,8 +74,8 @@ def extract_actions_from_desc(event, channels):
         start = event["start"] + timedelta(minutes=offset_start)
         end = event["end"] + timedelta(minutes=offset_end)
         if start < end:
-            yield Action(start, {index: u"on"}, event["summary"])
-            yield Action(end, {index: u"auto"}, event["summary"])
+            yield Action(start, {index: "on"}, event["summary"])
+            yield Action(end, {index: "auto"}, event["summary"])
 
 
 def extract_actions(events, channels):
@@ -91,11 +91,11 @@ def extract_actions(events, channels):
 
     """
     for event in events:
-        for name, index in channels.iteritems():
+        for name, index in channels.items():
             # Check if the channel name is in the event title
             if name in event["summary"].lower():
-                yield Action(event["start"], {index: u"on"}, event["summary"])
-                yield Action(event["end"], {index: u"auto"}, event["summary"])
+                yield Action(event["start"], {index: "on"}, event["summary"])
+                yield Action(event["end"], {index: "auto"}, event["summary"])
                 break  # only one channel per event
         else:
             # if no channel names in event title, try to parse its description
@@ -113,7 +113,7 @@ def get_combined_actions(events):
         except KeyError:
             actions[action.time] = action
     # put the combined actions (unique times) in a sorted list
-    action_list = sorted(actions.values(), key=lambda a: a.time)
+    action_list = sorted(list(actions.values()), key=lambda a: a.time)
     # remove duplicate comments in consecutive lists
     # last_comment = None
     # for action in action_list:

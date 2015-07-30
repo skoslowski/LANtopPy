@@ -3,12 +3,12 @@
 """Tests for lantop CLI"""
 
 import unittest
-from datetime import timedelta
 import argparse
-from helpers import LantopEmulator, nostdout
+from datetime import timedelta
 
 import lantop.cli
 
+from helpers import LantopEmulator, nostdout
 from _data import TEST_DATA
 
 

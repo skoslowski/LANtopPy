@@ -6,7 +6,7 @@ import sys
 import json
 
 from . import LANTOP_CONF_PATH
-
+from .lantop import LantopError
 
 config_file = os.path.expanduser(
     os.path.join(LANTOP_CONF_PATH, "dev_addr.json"))
@@ -17,7 +17,7 @@ def get_dev_addr():
         with open(config_file, "r") as fp:
             dev_addr = json.load(fp)
     except (IOError, ValueError):
-        dev_addr = None
+        raise LantopError("Can't load default device address")
     return dev_addr
 
 
@@ -29,5 +29,4 @@ def set_dev_addr(value):
         with open(config_file, "w") as fp:
             json.dump(value, fp)
     except IOError:
-        print >> sys.stderr, "Failed to set default address"
-        pass
+        print("Failed to set default address", file=sys.stderr)

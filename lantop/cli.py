@@ -62,7 +62,10 @@ def dev_addr_type(value):
 
 def parse_args(args):
     """Define and parse command line options"""
-    dev_addr = utils.get_dev_addr()
+    try:
+        dev_addr = utils.get_dev_addr()
+    except LantopError:
+        dev_addr = None
 
     parser = argparse.ArgumentParser(description="Get and set LANtop2 state, "
                                                  "settings and statistics")
@@ -83,7 +86,7 @@ def parse_args(args):
     parser.add_argument("-s", "--state", metavar="CH:ST", dest="set_states",
                         type=set_state_type, nargs="+",
                         help="Set a channel CH (0, 1, ...) to a new state ST" +
-                             "(" + ", ".join(CONTROL_MODES.keys()) + ")")
+                             "(" + ", ".join(list(CONTROL_MODES.keys())) + ")")
     parser.add_argument("-d", "--duration", metavar="HH[:MM[:SS]]",
                         dest="duration", type=duration_type,
                         help="Turn off after or turn on for a defined time")
@@ -187,7 +190,7 @@ def get_and_print_device_info(device, options):
     """Request general device parameters and print them"""
     dev_name = device.get_name()
     dev_type, serial = device.get_info()
-    print("Device: {:s} ({:s})".format(dev_name, dev_type))
+    print("Device: {:s} ({:s})".format(str(dev_name), str(dev_type)))
 
     dev_time = device.get_time()
     diff = int((dev_time - datetime.now()).total_seconds())
@@ -200,8 +203,7 @@ def get_and_print_device_info(device, options):
         print("Extra:  #{:d}, v{:4.2f} ({:%d.%m.%Y})".format(
             serial, *device.get_sw_version()))
         print("        v{:4.2f}, battery {:.1f}h, "
-              "power-on {:.1f}h ({:%d.%m.%Y})".format(
-              *device.get_extra_info()))
+              "power-on {:.1f}h ({:%d.%m.%Y})".format(*device.get_extra_info()))
 
 
 def get_and_print_overview(device, options, locks):
@@ -268,9 +270,9 @@ def main(args=None):
             get_and_print_overview(device, options, locks)
 
     except LantopError as err:
-        logger.error(err.message)
+        logger.error(err)
         if not options.be_quiet:
-            sys.stderr.write(err.message + "\n")
+            print(err, file=sys.stderr)
         return 1
 
     finally:

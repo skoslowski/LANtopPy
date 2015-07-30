@@ -5,6 +5,7 @@ import threading
 import socket
 import struct
 import sys
+import select
 from contextlib import contextmanager
 
 
@@ -15,6 +16,10 @@ def nostdout():
         """Dummy class to dump output"""
         def write(self, x):
             pass
+
+        def flush(self):
+            pass
+
     orig_stdout = sys.stdout
     sys.stdout = DummyFile()
     yield
@@ -60,8 +65,7 @@ class LantopEmulator(threading.Thread):
 
             except KeyError:
                 # Unknown message...
-                print data
-                pass
+                print(data)
 
         self._socket.close()
         self.running = False

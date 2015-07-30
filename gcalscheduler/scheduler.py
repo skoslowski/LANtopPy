@@ -13,7 +13,7 @@ import logging.handlers
 from lantop import Lantop, LantopError, utils
 from lantop.lock_counts import LockCounts
 
-from gcalimport import GCalEventImporter, get_combined_actions, CONFIG
+from gcalscheduler import GCalEventImporter, get_combined_actions, CONFIG
 
 
 logger = logging.getLogger(__name__)
@@ -36,7 +36,7 @@ def update_jobs(scheduler):
 
         for action in actions:
             scheduler.enterabs(action.time, 1, run_lantop,
-                               (action.args, action.comment))
+                               (action.args, action.label))
 
         logger.info("Imported %d actions from google calendar", len(events))
 
@@ -61,7 +61,7 @@ def run_lantop(change_list, comment, retries=5):
             raise LantopError("Could not connect to LANtop2")
 
         with LockCounts(logger=logger) as locks:
-            for channel, state in change_list.iteritems():
+            for channel, state in change_list.items():
                 locks.apply_new_state(device.set_state, channel, state)
 
     except LantopError as err:
@@ -74,6 +74,7 @@ def run_lantop(change_list, comment, retries=5):
 
 def main():
     logging.basicConfig(format='%(asctime)-15s %(message)s')
+    utils.set_dev_addr(('127.0.0.1', 10001))
 
     def sleep_with_timedelta(duration):
         if hasattr(duration, 'total_seconds'):
@@ -87,7 +88,7 @@ def main():
     update_jobs(scheduler)
 
     for event in scheduler.queue:
-        print event
+        print(event)
 
     while True:
         try:
