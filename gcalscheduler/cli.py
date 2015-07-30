@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from dateutil.tz import tzlocal
 import json
 
-from . event_importer import GCalEventImporter, GCalEventError
+from . client import GCalEventImporter, GCalEventError
 from . parser import get_combined_actions
 
 from . _config import CONFIG

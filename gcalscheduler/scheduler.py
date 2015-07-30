@@ -3,7 +3,7 @@
 
 import time
 import sched
-import os
+import sys
 from datetime import datetime, timedelta
 from dateutil.tz import tzlocal
 import logging
@@ -13,7 +13,7 @@ from lantop import Lantop, utils
 from lantop.lock_counts import LockCounts
 
 from ._config import CONFIG
-from .event_importer import GCalEventImporter
+from .client import GCalEventImporter
 from .parser import get_combined_actions
 
 
@@ -56,10 +56,11 @@ def run_lantop(change_list, label, retries=5):
 
 def main():
     logging.basicConfig(
+        stream=sys.stdout,
         style='{',
         format='{asctime:10} {levelname:7} {name:35} {message}',
         level=logging.INFO,
-        filename=os.path.expanduser('gcal_scheduler.log')
+        # filename=os.path.expanduser('~/gcal_scheduler.log')
     )
     logger = logging.getLogger(__name__)
 

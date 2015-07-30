@@ -105,7 +105,9 @@ setup(
     entry_points = {
         "console_scripts": [
             "lantop = lantop.cli:main",
-            "gcal_import = lantop.gcalimport.cli:main"
+            "gcal_import = gcalscheduler.cli:main",
+            "gcal_scheduler = gcalscheduler.scheduler:main"
+            "gcal_auth = gcalscheduler.client:authorize"
         ]
     },
     data_files = [

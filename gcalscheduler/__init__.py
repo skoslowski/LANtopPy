@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Google Calendar connector for lantop package"""
 
-from . event_importer import GCalEventImporter, GCalEventError
+from . client import GCalEventImporter, GCalEventError
 from . cli import main
 from . _config import CONFIG
 

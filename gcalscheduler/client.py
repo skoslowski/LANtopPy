@@ -6,12 +6,15 @@ import httplib2
 
 from apiclient import discovery
 from oauth2client.file import Storage
-from oauth2client.client import OAuth2WebServerFlow, SignedJwtAssertionCredentials
-from oauth2client import tools
+from oauth2client.client import OAuth2WebServerFlow
 
 from dateutil.parser import parse as dateutil_parse
 
 from . _config import CONFIG
+
+
+API_TOKEN_STORAGE = os.path.expanduser(os.path.join(
+    CONFIG["credentials_storage_path"], "api_token.json"))
 
 
 class GCalEventError(Exception):
@@ -26,18 +29,12 @@ class GCalEventImporter(object):
         """Connect to and authenticate with Google API"""
         self._calendar_id = ""
 
-        flow = OAuth2WebServerFlow(**CONFIG["api_params"])
-        flags = tools.argparser.parse_args(())
-
-        storage = Storage(os.path.expanduser(os.path.join(
-            CONFIG["credentials_storage_path"], "api_token.json")))
-        credentials = storage.get()
+        credentials = Storage(API_TOKEN_STORAGE).get()
 
         if credentials is None or credentials.invalid:
-            credentials = tools.run_flow(flow, storage, flags)
+            raise GCalEventError('Missing or invalid credentials')
 
         http = credentials.authorize(httplib2.Http())
-        credentials.refresh(http)
 
         self.service = discovery.build(
             serviceName="calendar", version="v3", http=http,
@@ -78,3 +75,19 @@ class GCalEventImporter(object):
             raise GCalEventError("There were more")
 
         return events
+
+
+def authorize():
+    flow = OAuth2WebServerFlow(**CONFIG["api_params"])
+
+    authorize_url = flow.step1_get_authorize_url()
+
+    print('Go to the following link in your browser:')
+    print()
+    print('    ' + authorize_url)
+    print()
+
+    code = input('Enter verification code: ').strip()
+    credential = flow.step2_exchange(code)
+
+    Storage(API_TOKEN_STORAGE).put(credential)
