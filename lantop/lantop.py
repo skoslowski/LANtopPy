@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """lantop client API"""
 
+import time
 import struct
 import base64
 from datetime import datetime, date
@@ -10,7 +11,7 @@ from . _config import (
     STATE_REASONS
 )
 from .transport import Transport
-from .errors import LantopError
+from .errors import LantopError, LantopTransportError
 
 
 class Lantop(object):
@@ -24,12 +25,31 @@ class Lantop(object):
         if args or kwargs:
             self.connect(*args, **kwargs)
 
-    def connect(self, *args, **kwargs):
-        self.tp = self.Transport(*args, **kwargs)
+    def connect(self, *args, retries=0, **kwargs):
+        if self.tp:
+            self.close()
+        for failed in range(1 + retries):
+            try:
+                self.tp = self.Transport(*args, **kwargs)
+            except LantopTransportError:
+                if failed < retries:
+                    time.sleep(5)
+                else:
+                    raise
+            else:
+                break
 
     def close(self):
         if self.tp:
             self.tp.close()
+            self.tp = None
+
+    def __enter__(self):
+        if not self.tp:
+            raise RuntimeError('Not connected to device')
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
 
     def get_info(self):
         """Get device Info (type, serial number)

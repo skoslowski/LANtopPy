@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 
 from dateutil.tz import tzlocal
 
-from gcalscheduler.event_parser import (
+from gcalscheduler.parser import (
     Action, extract_actions, extract_actions_from_desc
 )
 

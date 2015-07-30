@@ -247,17 +247,7 @@ def main(args=None):
 
     device = None
     try:
-        # connect
-        for count in range(options.retries + 1):
-            try:
-                device = Lantop(*options.dev_addr)
-                break
-            except LantopError:
-                sleep(random.uniform(1, 5))
-        else:
-            raise LantopError("Could not connect to LANtop2")
-
-        # get lock counts
+        device = Lantop(*options.dev_addr, retries=options.retries)
         locks = LockCounts(LOCK_COUNTERS_FILE, logger)
 
         # set stuff

@@ -70,28 +70,31 @@ class LockCounts(object):
 
     def save(self, force=False):
         """Store updated channel state counts to file"""
-        if force or self.modified:
-            try:
-                with open(self.filename, "w") as fp:
-                    json.dump(self._counts, fp)
-                self.modified = False
-            except IOError:
-                raise RuntimeError("Could not write states file")
+        if not (force or self.modified):
+            return
+        directory = os.path.dirname(self.filename)
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+        with open(self.filename, "w") as fp:
+            json.dump(self._counts, fp)
+        self.modified = False
 
-    def apply_new_state(self, applyfunc, channel, state):
+    def apply(self, func, channel, state):
         logger = self.logger
+
+        def apply():
+            func(channel, state)
+            logger.info("Set channel {} to state {!r}.".format(channel, state))
+
         self[channel] += 1 if state == "on" else -1
 
         if self[channel] == 1 and state == "on":
-            applyfunc(channel, "on")
-            logger.info("Set channel {} to state on.".format(channel))
+            apply()
         elif self[channel] <= 0 and state == "auto":
-            applyfunc(channel, "auto")
-            logger.info("Set channel {} to state auto.".format(channel))
+            apply()
         elif state == "off":
-            applyfunc(channel, "off")
+            apply()
             self[channel] = 0
-            logger.info("Set channel {} to state off.".format(channel))
         else:
             logger.info("Channel {} unchanged (locked).".format(channel))
 
