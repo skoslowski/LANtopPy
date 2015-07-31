@@ -196,8 +196,7 @@ def get_and_print_device_info(device, options):
     diff = int((dev_time - datetime.now()).total_seconds())
     if abs(diff) < 2:
         diff = 0  # account for network latency
-    print("Time:   {:%d.%m.%Y %H:%M:%S} (diff: {:d}s)".format(
-        dev_time, diff))
+    print("Time:   {:%d.%m.%Y %H:%M:%S} (diff: {:d}s)".format(dev_time, diff))
 
     if options.extra_info:
         print("Extra:  #{:d}, v{:4.2f} ({:%d.%m.%Y})".format(
@@ -250,13 +249,15 @@ def main(args=None):
         device = Lantop(*options.dev_addr, retries=options.retries)
         locks = LockCounts(LOCK_COUNTERS_FILE, logger)
 
+        if not options.be_quiet:
+            get_and_print_device_info(device, options)
+            print("")
+
         # set stuff
         change_device_states_or_time(device, options, locks, logger)
 
         # print overview
         if not options.be_quiet:
-            get_and_print_device_info(device, options)
-            print("")
             get_and_print_overview(device, options, locks)
 
     except LantopError as err:

@@ -22,40 +22,46 @@ class GCalEventError(Exception):
     pass
 
 
+class GCalAuthorizationMissing(GCalEventError):
+    """Exceptions thrown by GCalEventImporter"""
+    pass
+
+
 class GCalEventImporter(object):
     """Class for retrieving a list of calendar entries from Google"""
 
-    def __init__(self):
+    def __init__(self, calendar_came=None):
         """Connect to and authenticate with Google API"""
         self._calendar_id = ""
 
         credentials = Storage(API_TOKEN_STORAGE).get()
-
         if credentials is None or credentials.invalid:
-            raise GCalEventError('Missing or invalid credentials')
-
-        http = credentials.authorize(httplib2.Http())
+            raise GCalAuthorizationMissing('Missing or invalid credentials')
 
         self.service = discovery.build(
-            serviceName="calendar", version="v3", http=http,
+            serviceName="calendar",
+            version="v3",
+            http=credentials.authorize(httplib2.Http()),
             developerKey=CONFIG["dev_key"]
         )
 
+        if calendar_came:
+            self.select_calendar(calendar_came)
+
     def select_calendar(self, calendar_came):
         """Select a calendar to be used for entry retrieval"""
-        calendar_list = self.service.calendarList().list().execute()
-        for calendar_list_entry in calendar_list["items"]:
+        response = self.service.calendarList().list().execute()
+        for calendar_list_entry in response["items"]:
             if calendar_list_entry["summary"] == calendar_came:
                 self._calendar_id = calendar_list_entry["id"]
                 break
-
-        if not self._calendar_id:
+        else:
             raise GCalEventError("Calendar not found")
 
     def get_events(self, start, end):
         """Retrieve a list of event in the time between start and stop"""
         if not self._calendar_id:
-            raise GCalEventError("No calendar selected")
+            raise GCalEventError("No calendar has been selected")
 
         response = self.service.events().list(
             calendarId=self._calendar_id,

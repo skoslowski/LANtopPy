@@ -23,10 +23,7 @@ def update_jobs(scheduler):
     start = scheduler.timefunc() + timedelta(seconds=30)
     end = start + timedelta(days=CONFIG["time_span"])
 
-    gcal = GCalEventImporter()
-    gcal.select_calendar(CONFIG["calendar_name"])
-
-    events = gcal.get_events(start, end)
+    events = GCalEventImporter(CONFIG["calendar_name"]).get_events(start, end)
     logger.info("Imported %d events from Google Calendar", len(events))
 
     actions = [a for a in get_combined_actions(events) if start < a.time < end]
@@ -63,6 +60,7 @@ def main():
         # filename=os.path.expanduser('~/gcal_scheduler.log')
     )
     logger = logging.getLogger(__name__)
+    logging.getLogger('googleapiclient').setLevel(logging.WARNING)
 
     def sleep_with_timedelta(duration):
         if hasattr(duration, 'total_seconds'):
@@ -84,7 +82,3 @@ def main():
 
         except KeyboardInterrupt:
             break
-
-
-if __name__ == '__main__':
-    main()
