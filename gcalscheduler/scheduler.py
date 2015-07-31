@@ -9,12 +9,13 @@ from dateutil.tz import tzlocal
 import logging
 import logging.handlers
 
-from lantop import Lantop, utils
+from lantop import utils, Lantop
 from lantop.lock_counts import LockCounts
 
 from ._config import CONFIG
 from .client import GCalEventImporter
 from .parser import get_combined_actions
+from .utils import PushBulletHandler
 
 
 def update_jobs(scheduler):
@@ -43,7 +44,7 @@ def update_jobs(scheduler):
 
 def run_lantop(change_list, label, retries=5):
     logger = logging.getLogger(__name__ + '.executor')
-    logger.info('Setting %r for event %r', change_list, label)
+    logger.warn('Setting %r for event %r', change_list, label)
 
     device = Lantop(*utils.get_dev_addr(), retries=retries)
     with device, LockCounts() as with_counters:
@@ -53,11 +54,13 @@ def run_lantop(change_list, label, retries=5):
 
 def main():
     logging.basicConfig(
-        stream=sys.stdout,
         style='{',
         format='{asctime:10} {levelname:7} {name:35} {message}',
         level=logging.INFO,
-        # filename=os.path.expanduser('~/gcal_scheduler.log')
+        handlers=[
+            logging.StreamHandler(sys.stdout),
+            PushBulletHandler(CONFIG['PB_API_KEY'], title=__name__)
+        ]
     )
     logger = logging.getLogger(__name__)
     logging.getLogger('googleapiclient').setLevel(logging.WARNING)
@@ -73,6 +76,7 @@ def main():
     )
     update_jobs(scheduler)
 
+    logger.warn("Scheduler started")
     while True:
         try:
             scheduler.run()
