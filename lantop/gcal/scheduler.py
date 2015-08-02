@@ -77,7 +77,8 @@ def setup_logging():
     ))
     root.addHandler(pb_handler)
 
-    logging.getLogger('googleapiclient').setLevel(logging.WARNING)
+    for name in ('requests', 'googleapiclient'):
+        logging.getLogger(name).setLevel(logging.WARNING)
 
 
 def main():

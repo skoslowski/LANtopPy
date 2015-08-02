@@ -5,8 +5,7 @@ import unittest
 from datetime import datetime, timedelta
 
 from dateutil.tz import tzlocal
-
-from gcalscheduler.parser import (
+from lantop.gcal.parser import (
     Action, extract_actions, extract_actions_from_desc
 )
 
