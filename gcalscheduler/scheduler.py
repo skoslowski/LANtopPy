@@ -7,7 +7,6 @@ import sys
 from datetime import datetime, timedelta
 from dateutil.tz import tzlocal
 import logging
-import logging.handlers
 
 from lantop import utils, Lantop
 from lantop.lock_counts import LockCounts
@@ -19,6 +18,7 @@ from .utils import PushBulletHandler
 
 
 def update_jobs(scheduler):
+    scheduler.enter(timedelta(minutes=5), 0, update_jobs, (scheduler,))
     logger = logging.getLogger(__name__ + '.updater')
 
     start = scheduler.timefunc() + timedelta(seconds=30)
@@ -31,10 +31,8 @@ def update_jobs(scheduler):
     logger.info("Scheduling %d actions from event data", len(actions))
 
     for event in scheduler.queue:
-        scheduler.cancel(event)
-
-    scheduler.enter(timedelta(minutes=5), 0, update_jobs, (scheduler,))
-
+        if event.action == run_lantop:
+            scheduler.cancel(event)
     for action in actions:
         scheduler.enterabs(action.time, 1, run_lantop,
                            (action.args, action.label))
@@ -44,26 +42,47 @@ def update_jobs(scheduler):
 
 def run_lantop(change_list, label, retries=5):
     logger = logging.getLogger(__name__ + '.executor')
-    logger.warn('Setting %r for event %r', change_list, label)
+    logger.warning('Setting %r for event %r', change_list, label)
 
     device = Lantop(*utils.get_dev_addr(), retries=retries)
-    with device, LockCounts() as with_counters:
+    with device, LockCounts() as with_locks:
         for channel, state in change_list.items():
-            with_counters.apply(device.set_state, channel, state)
+            with_locks.apply(device.set_state, channel, state)
+
+
+def sync_lantop_time(scheduler, retries=5):
+    scheduler.enter(timedelta(days=7), 0, update_jobs, (scheduler,))
+    logger = logging.getLogger(__name__ + '.time_sync')
+
+    with Lantop(*utils.get_dev_addr(), retries=retries) as device:
+        device.set_time()
+    logger.info('Updated time on device')
+
+
+def setup_logging():
+    root = logging.getLogger()
+    root.setLevel(logging.INFO)
+
+    stream_handler = logging.StreamHandler(sys.stdout)
+    stream_handler.setFormatter(logging.Formatter(
+        fmt='{asctime:10} {levelname:7} {name:35} {message}', style='{'
+    ))
+    stream_handler.setLevel(logging.INFO)
+    root.addHandler(stream_handler)
+
+    pb_handler = PushBulletHandler(
+        api_key=CONFIG['PB_API_KEY'], title="CZK Heizung")
+    pb_handler.setFormatter(logging.Formatter(
+        fmt='{message}\n\n{levelname:7}\n{name:35}', style='{'
+    ))
+    root.addHandler(pb_handler)
+
+    logging.getLogger('googleapiclient').setLevel(logging.WARNING)
 
 
 def main():
-    logging.basicConfig(
-        style='{',
-        format='{asctime:10} {levelname:7} {name:35} {message}',
-        level=logging.INFO,
-        handlers=[
-            logging.StreamHandler(sys.stdout),
-            PushBulletHandler(CONFIG['PB_API_KEY'], title=__name__)
-        ]
-    )
+    setup_logging()
     logger = logging.getLogger(__name__)
-    logging.getLogger('googleapiclient').setLevel(logging.WARNING)
 
     def sleep_with_timedelta(duration):
         if hasattr(duration, 'total_seconds'):
@@ -74,9 +93,10 @@ def main():
         timefunc=lambda: datetime.now(tzlocal()),
         delayfunc=sleep_with_timedelta
     )
+    sync_lantop_time(scheduler)
     update_jobs(scheduler)
 
-    logger.warn("Scheduler started")
+    logger.warning("Scheduler started")
     while True:
         try:
             scheduler.run()

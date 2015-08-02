@@ -47,6 +47,7 @@ class Lantop(object):
     def __enter__(self):
         if not self.tp:
             raise RuntimeError('Not connected to device')
+        return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
