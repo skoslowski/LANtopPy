@@ -8,8 +8,8 @@ from datetime import datetime, timedelta
 from dateutil.tz import tzlocal
 import logging
 
-from lantop import utils, Lantop
-from lantop.lock_counts import LockCounts
+from .. import utils, Lantop, __version__ as version
+from ..lock_counts import LockCounts
 
 from ._config import CONFIG
 from .client import GCalEventImporter
@@ -84,6 +84,7 @@ def setup_logging():
 def main():
     setup_logging()
     logger = logging.getLogger(__name__)
+    logger.warning("Scheduler started (%s)", version)
 
     def sleep_with_timedelta(duration):
         if hasattr(duration, 'total_seconds'):
@@ -97,7 +98,6 @@ def main():
     sync_lantop_time(scheduler)
     update_jobs(scheduler)
 
-    logger.warning("Scheduler started")
     while True:
         try:
             scheduler.run()

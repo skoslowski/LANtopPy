@@ -13,6 +13,6 @@ __license__ = "GPL"
 __copyright__ = "Copyright 2013 Sebastian Koslowski"
 
 try:
-    from _version import __version__
+    from . _version import __version__
 except ImportError:
     __version__ = "Unknown"
