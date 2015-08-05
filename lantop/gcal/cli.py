@@ -27,30 +27,28 @@ def load_config():
 
 def main():
     """get event and generate crontab"""
+    logger = get_logger(__name__)
     load_config()
-    logger = get_logger("lantop.gcal_import")
 
     # get events from Google Calendar
     now = datetime.now(tzlocal())
     try:
-        gcal = GCalEventImporter()
-        gcal.select_calendar(CONFIG["calendar_name"])
+        gcal = GCalEventImporter(CONFIG["calendar_name"])
         events = gcal.get_events(now - timedelta(days=1),
-                                 now + timedelta(days=CONFIG["time_span"]))
+                                 now + CONFIG["time_span"])
     except GCalEventError as err:
         logger.exception(err)
-        return 1
+        return -1
 
     # build cron file with data found in events
     try:
         entries = [str(action).encode("UTF-8")
                    for action in get_combined_actions(events)
                    if action.time > now]
-        logger.info("Imported %d actions from google calendar", len(entries))
+        logger.info("Imported %d actions from Google Calendar", len(entries))
 
-    except Exception as e:
-        logger.exception(e)
-        #logger.error("Could not parse event data: %s", str(e))
+    except Exception as err:
+        logger.exception(err)
         return 1
 
     # all good till here? Write triggers to file
@@ -60,4 +58,4 @@ def main():
             fp.write("\n".join(entries) + "\n")
     except IOError:
         logger.error("Could not write to crontab file")
-        return 1
+        return -1

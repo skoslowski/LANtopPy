@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Config values for gcalimport package"""
 
+import datetime
 from lantop import LANTOP_CONF_PATH
 
 
@@ -11,7 +12,7 @@ CONFIG = {
     # Calendar to import events from
     'calendar_name': 'CZK',
     # how many days to get events in advantage
-    'time_span': 7,  # days
+    'time_span': datetime.timedelta(days=7),  # days
     # mapping of channel labels to their indexes
     'channels': {
         'lüftung': 0,
@@ -19,6 +20,8 @@ CONFIG = {
         'heizung': 2,
         'spare': 3
     },
+    # how often to check to changes events
+    'poll_interval': datetime.timedelta(minutes=20),
 
     ############################################################
     # Psuh Bullet API

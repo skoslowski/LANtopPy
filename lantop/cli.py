@@ -228,7 +228,7 @@ def get_logger(name):
     """Load logging settings from file"""
     logging_config_file = os.path.join(LANTOP_CONF_PATH, "logging.json")
     if os.path.exists(logging_config_file):
-        with open(logging_config_file, "r") as fp:
+        with open(logging_config_file) as fp:
             logging.config.dictConfig(json.load(fp))
     logger = logging.getLogger(name)
     logger.addHandler(logging.NullHandler())
@@ -237,7 +237,7 @@ def get_logger(name):
 
 def main(args=None):
     """main function for the CLI"""
-    logger = get_logger("lantop.cli")
+    logger = get_logger(__name__)
     options = parse_args(args or sys.argv[1:])
 
     if options.show_version:

@@ -18,17 +18,17 @@ from .utils import PushBulletHandler
 
 
 def update_jobs(scheduler):
-    scheduler.enter(timedelta(minutes=5), 0, update_jobs, (scheduler,))
+    scheduler.enter(CONFIG['poll_interval'], 0, update_jobs, (scheduler,))
     logger = logging.getLogger(__name__ + '.updater')
 
     start = scheduler.timefunc() + timedelta(seconds=30)
-    end = start + timedelta(days=CONFIG["time_span"])
+    end = start + CONFIG["time_span"]
 
     events = GCalEventImporter(CONFIG["calendar_name"]).get_events(start, end)
-    logger.info("Imported %d events from Google Calendar", len(events))
-
     actions = [a for a in get_combined_actions(events) if start < a.time < end]
-    logger.info("Scheduling %d actions from event data", len(actions))
+
+    logger.info("Scheduling %d actions from %d Google Calender events",
+                len(actions), len(events))
 
     for event in scheduler.queue:
         if event.action == run_lantop:
@@ -51,7 +51,7 @@ def run_lantop(change_list, label, retries=5):
 
 
 def sync_lantop_time(scheduler, retries=5):
-    scheduler.enter(timedelta(days=7), 0, update_jobs, (scheduler,))
+    scheduler.enter(timedelta(days=7), 2, update_jobs, (scheduler,))
     logger = logging.getLogger(__name__ + '.time_sync')
 
     with Lantop(*utils.get_dev_addr(), retries=retries) as device:

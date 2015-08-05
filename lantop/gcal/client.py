@@ -73,8 +73,10 @@ class GCalEventImporter(object):
 
         events = response["items"]
         for event in events:
-            for what in ('start', 'end'):
-                event[what] = dateutil_parse(event[what]["dateTime"])
+            event['start'] = dateutil_parse(event['start']["dateTime"])
+            event['end'] = dateutil_parse(event['end']["dateTime"])
+            event['created'] = dateutil_parse(event['created'])
+            event['updated'] = dateutil_parse(event['updated'])
 
         # check if there were more results
         if response.get("nextPageToken"):
