@@ -7,8 +7,8 @@ from datetime import datetime, timedelta
 
 from lantop.lantop import Lantop, Transport, LantopError
 
-from test.helpers import LantopEmulator
-from test._data import TEST_DATA
+from .helpers import LantopEmulator
+from .data import TEST_DATA
 
 
 class LantopTransportTest(unittest.TestCase):

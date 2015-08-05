@@ -75,9 +75,7 @@ class Transport(object):
                 received += self._socket.recv_into(buffer[received:])
             self.logger.debug("Got response %s", buffer)
             return buffer.obj
-
-        except Exception as e:
-            print(repr(e))
+        except Exception:
             raise LantopTransportError("Could not read from LANtop2")
 
     def request(self, req_code, resp_code, channel=None, args=b''):
@@ -101,10 +99,8 @@ class Transport(object):
         if len(data) < len(resp_code):
             raise LantopTransportError("Invalid message")
         try:
-            import codecs
             data = base64.b16decode(data)
         except:
-            print(req_code, data)
             raise LantopTransportError("Message can not be decoded")
         if not resp_code.encode('UTF-8') == data[:len(resp_code)]:
             raise LantopTransportError("Wrong response code")

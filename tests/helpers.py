@@ -65,8 +65,9 @@ class LantopEmulator(threading.Thread):
 
             except KeyError:
                 # Unknown message...
-                print(data)
+                print('Unhandled message:', data)
 
+        csocket.close()
         self._socket.close()
         self.running = False
 

@@ -8,8 +8,8 @@ from datetime import timedelta
 
 import lantop.cli
 
-from helpers import LantopEmulator, nostdout
-from _data import TEST_DATA
+from .helpers import LantopEmulator, nostdout
+from .data import TEST_DATA
 
 
 class CLITest(unittest.TestCase):

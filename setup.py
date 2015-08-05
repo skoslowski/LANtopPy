@@ -2,13 +2,11 @@
 # -*- coding: utf-8 -*-
 """Setup script for LANtopPy"""
 
-
 import sys
 import os
 import re
-import codecs
 import subprocess
-from setuptools import setup, Command
+import setuptools
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 
@@ -21,7 +19,7 @@ __version__ = "{}"
 """
 
 
-class Version(Command):
+class Version(setuptools.Command):
     """setup command to update _version.py"""
     description = "update _version.py from 'git describe'"
     user_options = []
@@ -57,7 +55,7 @@ class Version(Command):
         parts = version.split("-")
         if parts[0][0] == "v":
             parts[0] = parts[0][1:]
-        parts[-2] = "post"+parts[-2]
+        parts[-2] = "post" + parts[-2]
         return ".".join(parts[:-1])
 
     @staticmethod
@@ -79,30 +77,25 @@ class Version(Command):
         return None
 
 
-def read(*parts):
-    """Utility function to read the README file"""
-    return codecs.open(os.path.join(HERE, *parts), "r").read()
+setuptools.setup(
+    name="LANtopPy",
+    version=Version.from_file() or "0.0",
+    license="GPL",
+    author="Sebastian Koslowski",
+    author_email="sebastian.koslowski@gmail.com",
 
+    description="A client API and CLI to control/manage Theben digital "
+                "time switches with a yearly program "
+                "(TR 64* top2 connected using a EM LAN top2 module)",
+    long_description=open("README.md").read(),
 
-setup(
-    name = "LANtopPy",
-    version = Version.from_file() or "0.0",
-    license = "GPL",
-    author =  "Sebastian Koslowski",
-    author_email = "sebastian.koslowski@gmail.com",
+    url="https://github.com/skoslowski/LANtopPy",
+    download_url="https://github.com/skoslowski/LANtopPy/archive/master.zip",
 
-    description = "A client API and CLI to control/manage Theben digital "
-                  "time switches with a yearly program "
-                  "(TR 64* top2 connected using a EM LAN top2 module)",
-    long_description = read("README.md"),
+    packages=["lantop"],
+    install_requires=[line.strip() for line in open("requirements.txt")],
 
-    url = "https://github.com/skoslowski/LANtopPy",
-    download_url = "https://github.com/skoslowski/LANtopPy/archive/master.zip",
-
-    packages = ["lantop"],
-    install_requires = [line.strip() for line in open("requirements.txt","r")],
-
-    entry_points = {
+    entry_points={
         "console_scripts": [
             "lantop = lantop.cli:main",
             "gcal_import = lantop.gcal.cli:main",
@@ -110,22 +103,22 @@ setup(
             "gcal_auth = lantop.gcal.client:authorize",
         ]
     },
-    data_files = [
-        ("/etc/lantop", [
-            "config/logging.json",
-            "config/gcal_import.json"
-        ])
+    data_files=[
+        # ("~/.config/lantop", [
+        #     "config/logging.json",
+        #     "config/gcal_import.json"
+        # ])
     ],
-    package_data = {
+    package_data={
         "": [
             "README.md",
             "LICENSE.txt"
         ]
     },
-    test_suite = "test",
+    test_suite="tests",
 
     # zip_safe = False,
-    cmdclass = {
+    cmdclass={
         "version": Version
     }
 )

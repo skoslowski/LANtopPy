@@ -16,7 +16,7 @@ TEST_DATA = {
                  ('TR 644 top2 RC', 110121007)),
     # get name
     b'K024E47': (b'6B4E746573745445535431323300',
-                 b'testTEST123'),
+                 'testTEST123'),
     # set name
     b'K174E53': (b'6B4E31',
                  b'K174E536162636465666768696A6B6C6D6E6F707172737400'),
