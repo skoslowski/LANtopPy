@@ -42,12 +42,17 @@ def update_jobs(scheduler):
 
 def run_lantop(change_list, label, retries=5):
     logger = logging.getLogger(__name__ + '.executor')
-    logger.warning('Setting %r for event %r', change_list, label)
+    logger.info('Setting %r for event %r', change_list, label)
 
     device = Lantop(*utils.get_dev_addr(), retries=retries)
     with device, LockCounts() as with_locks:
         for channel, state in change_list.items():
             with_locks.apply(device.set_state, channel, state)
+
+        logger.warning(
+            'Event: %r\nStates:%s', label,
+            ' '.join('{active:d}'.format(**ch) for ch in device.get_states())
+        )
 
 
 def sync_lantop_time(scheduler, retries=5):
