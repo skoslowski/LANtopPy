@@ -2,7 +2,7 @@
 """Config value(s) for lantop client API and CLI"""
 
 # where settings for the CLI are stored (only the default IP so far)
-LANTOP_CONF_PATH = "~/.config/lantop/"
+DEFAULT_LANTOP_CONF_PATH = "~/.config/lantop"
 
 LOCK_COUNTERS_FILE = "/var/lib/lantop/state"
 

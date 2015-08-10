@@ -3,19 +3,16 @@
 
 import time
 import sched
-import sys
 from datetime import datetime, timedelta
 from dateutil.tz import tzlocal
 import logging
-import json
 
-from .. import utils, Lantop, __version__ as version
+from .. import utils, Lantop, __version__
 from ..lock_counts import LockCounts
 
 from .config import CONFIG
 from .client import GCalEventImporter
 from .parser import get_combined_actions
-from .utils import PushBulletHandler
 
 
 def update_jobs(scheduler):
@@ -65,35 +62,10 @@ def sync_lantop_time(scheduler, retries=5):
     logger.info('Updated time on device')
 
 
-def setup_logging():
-    root = logging.getLogger()
-    root.setLevel(logging.INFO)
-
-    stream_handler = logging.StreamHandler(sys.stdout)
-    stream_handler.setFormatter(logging.Formatter(
-        fmt='{asctime:10} {levelname:7} {name:35} {message}', style='{'
-    ))
-    stream_handler.setLevel(logging.INFO)
-    root.addHandler(stream_handler)
-
-    try:
-        pb_api_key = json.load(open(CONFIG['PB_API_KEY']))
-        pb_handler = PushBulletHandler(pb_api_key, title="CZK Heizung")
-        pb_handler.setFormatter(logging.Formatter(
-            fmt='{message}\n\n{levelname:7}\n{name:35}', style='{'
-        ))
-        root.addHandler(pb_handler)
-    except IOError:
-        pass
-
-    for name in ('requests', 'googleapiclient'):
-        logging.getLogger(name).setLevel(logging.WARNING)
-
-
 def main():
-    setup_logging()
+    utils.setup_logging()
     logger = logging.getLogger(__name__)
-    logger.warning("Scheduler started (%s)", version)
+    logger.warning("Scheduler started (%s)", __version__)
 
     def sleep_with_timedelta(duration):
         if hasattr(duration, 'total_seconds'):

@@ -7,10 +7,6 @@ import os
 from lantop import LANTOP_CONF_PATH
 
 
-def _full_path(name):
-    return os.path.expanduser(os.path.join(LANTOP_CONF_PATH, name))
-
-
 CONFIG = {
     ############################################################
     # Event importer
@@ -18,7 +14,7 @@ CONFIG = {
     # Calendar to import events from
     'calendar_name': 'CZK',
     # how many days to get events in advantage
-    'time_span': datetime.timedelta(days=7),  # days
+    'time_span': datetime.timedelta(days=7),
     # mapping of channel labels to their indexes
     'channels': {
         'lüftung': 0,
@@ -30,17 +26,12 @@ CONFIG = {
     'poll_interval': datetime.timedelta(minutes=20),
 
     ############################################################
-    # Push Bullet API
-    ############################################################
-    'PB_API_KEY': _full_path('pushbullet_logger.json'),
-
-    ############################################################
     # Google Calendar API
     ############################################################
-    'credentials_storage_path': _full_path('api_token.json'),
-    'client_secrets': _full_path('client_secret.json'),
+    'client_secrets': os.path.join(LANTOP_CONF_PATH, 'client_secret.json'),
     'scope': 'https://www.googleapis.com/auth/calendar.readonly',
-    'dev_key': _full_path('google_dev_key.json'),
+    'dev_key': os.path.join(LANTOP_CONF_PATH, 'google_dev_key.json'),
+    'credentials_storage_path': os.path.join(LANTOP_CONF_PATH, 'api_token.json'),
 
     ############################################################
     # Cron settings

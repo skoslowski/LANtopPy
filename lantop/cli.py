@@ -1,22 +1,17 @@
 # -*- coding: utf-8 -*-
 """CLI for lantop client API"""
 
-import os
 import sys
-import json
 from datetime import datetime, timedelta
 
-from time import sleep
-import random  # uniform
 
 import logging
 import logging.config
 
 import argparse
 
-from . import __version__, utils
+from . import __version__, utils, LOCK_COUNTERS_FILE
 from . lantop import Lantop, LantopError, CONTROL_MODES, TIMED_STATE_LABELS
-from . consts import LANTOP_CONF_PATH, LOCK_COUNTERS_FILE
 from . lock_counts import LockCounts
 
 
@@ -224,19 +219,9 @@ def get_and_print_overview(device, options, locks):
         print(fmt.format(name, state, locks[channel], *stats, **states[channel]))
 
 
-def setup_logging():
-    """Load logging settings from file"""
-    logging_config_file = os.path.join(LANTOP_CONF_PATH, "logging.json")
-    if os.path.exists(logging_config_file):
-        with open(logging_config_file) as fp:
-            logging.config.dictConfig(json.load(fp))
-    root = logging.getLogger()
-    root.addHandler(logging.NullHandler())
-
-
 def main(args=None):
     """main function for the CLI"""
-    setup_logging()
+    utils.setup_logging()
     logger = logging.getLogger(__name__)
 
     options = parse_args(args or sys.argv[1:])

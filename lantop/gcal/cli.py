@@ -7,12 +7,11 @@ import logging
 from datetime import datetime, timedelta
 from dateutil.tz import tzlocal
 
+from .. import utils
+
 from . client import GCalEventImporter, GCalEventError
 from . parser import get_combined_actions
-
-from . config import CONFIG
-from lantop import LANTOP_CONF_PATH
-from lantop.cli import setup_logging
+from . config import CONFIG, LANTOP_CONF_PATH
 
 
 def load_config():
@@ -28,7 +27,7 @@ def load_config():
 
 def main():
     """get event and generate crontab"""
-    setup_logging()
+    utils.setup_logging()
     logger = logging.getLogger(__name__)
     load_config()
 
