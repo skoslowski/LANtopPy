@@ -224,20 +224,21 @@ def get_and_print_overview(device, options, locks):
         print(fmt.format(name, state, locks[channel], *stats, **states[channel]))
 
 
-def get_logger(name):
+def setup_logging():
     """Load logging settings from file"""
     logging_config_file = os.path.join(LANTOP_CONF_PATH, "logging.json")
     if os.path.exists(logging_config_file):
         with open(logging_config_file) as fp:
             logging.config.dictConfig(json.load(fp))
-    logger = logging.getLogger(name)
-    logger.addHandler(logging.NullHandler())
-    return logger
+    root = logging.getLogger()
+    root.addHandler(logging.NullHandler())
 
 
 def main(args=None):
     """main function for the CLI"""
-    logger = get_logger(__name__)
+    setup_logging()
+    logger = logging.getLogger(__name__)
+
     options = parse_args(args or sys.argv[1:])
 
     if options.show_version:

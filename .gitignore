@@ -5,3 +5,4 @@ _version.py
 /.eggs/
 /build/
 /.venv/
+/config/

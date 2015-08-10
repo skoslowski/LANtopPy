@@ -2,7 +2,13 @@
 """Config values for gcal package"""
 
 import datetime
+import os
+
 from lantop import LANTOP_CONF_PATH
+
+
+def _full_path(name):
+    return os.path.expanduser(os.path.join(LANTOP_CONF_PATH, name))
 
 
 CONFIG = {
@@ -26,20 +32,15 @@ CONFIG = {
     ############################################################
     # Push Bullet API
     ############################################################
-    'PB_API_KEY': '',
+    'PB_API_KEY': _full_path('pushbullet_logger.json'),
 
     ############################################################
     # Google Calendar API
     ############################################################
-    'credentials_storage_path': LANTOP_CONF_PATH,
-    'api_params': {
-        'client_id': '',
-        'client_secret': '',
-        'redirect_uri': 'urn:ietf:wg:oauth:2.0:oob',
-        'scope': 'https://www.googleapis.com/auth/calendar.readonly',
-        'user_agent': 'CZK-Heizungsteuerung/v1.0'
-    },
-    'dev_key': '',
+    'credentials_storage_path': _full_path('api_token.json'),
+    'client_secrets': _full_path('client_secret.json'),
+    'scope': 'https://www.googleapis.com/auth/calendar.readonly',
+    'dev_key': _full_path('google_dev_key.json'),
 
     ############################################################
     # Cron settings

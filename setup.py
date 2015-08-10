@@ -49,7 +49,7 @@ class Version(setuptools.Command):
     def call_git_describe():
         """Get version string from git"""
         version = subprocess.check_output(["git", "describe", "--tags"])
-        if isinstance(version, bytes):
+        if not isinstance(version, str):
             version = version.decode()
         # adapt git-describe version to be in line with PEP 386
         parts = version.split("-")
@@ -92,27 +92,15 @@ setuptools.setup(
     url="https://github.com/skoslowski/LANtopPy",
     download_url="https://github.com/skoslowski/LANtopPy/archive/master.zip",
 
-    packages=["lantop"],
+    packages=["lantop", "lantop.gcal"],
     install_requires=[line.strip() for line in open("requirements.txt")],
 
     entry_points={
         "console_scripts": [
             "lantop = lantop.cli:main",
-            "gcal_import = lantop.gcal.cli:main",
+            "gcal_cron = lantop.gcal.cli:main",
             "gcal_scheduler = lantop.gcal.scheduler:main",
             "gcal_auth = lantop.gcal.client:authorize",
-        ]
-    },
-    data_files=[
-        # ("~/.config/lantop", [
-        #     "config/logging.json",
-        #     "config/gcal_import.json"
-        # ])
-    ],
-    package_data={
-        "": [
-            "README.md",
-            "LICENSE.txt"
         ]
     },
     test_suite="tests",

@@ -1,20 +1,16 @@
 # -*- coding: utf-8 -*-
 """Handles Google API client stuff"""
 
-import os
+import json
 import httplib2
 
 from apiclient import discovery
 from oauth2client.file import Storage
-from oauth2client.client import OAuth2WebServerFlow
+from oauth2client.client import flow_from_clientsecrets
 
 from dateutil.parser import parse as dateutil_parse
 
 from . config import CONFIG
-
-
-API_TOKEN_STORAGE = os.path.expanduser(os.path.join(
-    CONFIG["credentials_storage_path"], "api_token.json"))
 
 
 class GCalEventError(Exception):
@@ -34,7 +30,12 @@ class GCalEventImporter(object):
         """Connect to and authenticate with Google API"""
         self._calendar_id = ""
 
-        credentials = Storage(API_TOKEN_STORAGE).get()
+        try:
+            dev_key = json.load(open(CONFIG["dev_key"]))
+        except IOError:
+            raise GCalAuthorizationMissing('Missing developer key file')
+
+        credentials = Storage(CONFIG['credentials_storage_path']).get()
         if credentials is None or credentials.invalid:
             raise GCalAuthorizationMissing('Missing or invalid credentials')
 
@@ -42,7 +43,7 @@ class GCalEventImporter(object):
             serviceName="calendar",
             version="v3",
             http=credentials.authorize(httplib2.Http()),
-            developerKey=CONFIG["dev_key"]
+            developerKey=dev_key
         )
 
         if calendar_came:
@@ -86,7 +87,8 @@ class GCalEventImporter(object):
 
 
 def authorize():
-    flow = OAuth2WebServerFlow(**CONFIG["api_params"])
+    flow = flow_from_clientsecrets(CONFIG['client_secrets'], CONFIG['scope'],
+                                   redirect_uri='urn:ietf:wg:oauth:2.0:oob')
 
     authorize_url = flow.step1_get_authorize_url()
 
@@ -98,4 +100,4 @@ def authorize():
     code = input('Enter verification code: ').strip()
     credential = flow.step2_exchange(code)
 
-    Storage(API_TOKEN_STORAGE).put(credential)
+    Storage(CONFIG['credentials_storage_path']).put(credential)

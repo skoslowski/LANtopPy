@@ -2,16 +2,17 @@
 """Get triggers from Google Calendar and format them for cron"""
 
 import os
+import json
+import logging
 from datetime import datetime, timedelta
 from dateutil.tz import tzlocal
-import json
 
 from . client import GCalEventImporter, GCalEventError
 from . parser import get_combined_actions
 
 from . config import CONFIG
 from lantop import LANTOP_CONF_PATH
-from lantop.cli import get_logger
+from lantop.cli import setup_logging
 
 
 def load_config():
@@ -27,7 +28,8 @@ def load_config():
 
 def main():
     """get event and generate crontab"""
-    logger = get_logger(__name__)
+    setup_logging()
+    logger = logging.getLogger(__name__)
     load_config()
 
     # get events from Google Calendar

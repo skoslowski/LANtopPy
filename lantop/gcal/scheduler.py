@@ -7,6 +7,7 @@ import sys
 from datetime import datetime, timedelta
 from dateutil.tz import tzlocal
 import logging
+import json
 
 from .. import utils, Lantop, __version__ as version
 from ..lock_counts import LockCounts
@@ -75,12 +76,15 @@ def setup_logging():
     stream_handler.setLevel(logging.INFO)
     root.addHandler(stream_handler)
 
-    pb_handler = PushBulletHandler(
-        api_key=CONFIG['PB_API_KEY'], title="CZK Heizung")
-    pb_handler.setFormatter(logging.Formatter(
-        fmt='{message}\n\n{levelname:7}\n{name:35}', style='{'
-    ))
-    root.addHandler(pb_handler)
+    try:
+        pb_api_key = json.load(open(CONFIG['PB_API_KEY']))
+        pb_handler = PushBulletHandler(pb_api_key, title="CZK Heizung")
+        pb_handler.setFormatter(logging.Formatter(
+            fmt='{message}\n\n{levelname:7}\n{name:35}', style='{'
+        ))
+        root.addHandler(pb_handler)
+    except IOError:
+        pass
 
     for name in ('requests', 'googleapiclient'):
         logging.getLogger(name).setLevel(logging.WARNING)
