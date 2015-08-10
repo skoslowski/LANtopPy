@@ -5,7 +5,6 @@ import threading
 import socket
 import struct
 import sys
-import select
 from contextlib import contextmanager
 
 
@@ -34,11 +33,11 @@ class LantopEmulator(threading.Thread):
         threading.Thread.__init__(self)
         self.running = False
 
-        self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self._socket.bind(address or ("localhost", 0))
-        self._socket.listen(1)
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.socket.bind(address or ("localhost", 0))
+        self.socket.listen(1)
 
-        self.server_address = self._socket.getsockname()
+        self.server_address = self.socket.getsockname()
         self.resp_dict = resp_dict or {}
         self.last_msg = ""
 
@@ -49,26 +48,26 @@ class LantopEmulator(threading.Thread):
 
     def run(self):
         """Accept connections. Send reply according to DATA dict variable"""
-        csocket, caddr = self._socket.accept()
+        client_socket, caddr = self.socket.accept()
         while self.running:
-            data = csocket.recv(1024)
+            data = client_socket.recv(1024)
             if not data:
                 break
 
             self.last_msg = data
+            header, args = data[:7], data[7:]
             try:
-                msg = self.resp_dict[data[:7]][0]
-                if type(msg) is dict:
-                    msg = msg[data[7:]]
-                csocket.sendall(
-                    struct.pack("B%ds" % (len(msg),), len(msg) + 32, msg))
+                resp = self.resp_dict[header][0]
+                if not isinstance(resp, bytes):
+                    resp = resp[args]
+                client_socket.sendall(bytes([32 + len(resp)]) + resp)
 
             except KeyError:
                 # Unknown message...
                 print('Unhandled message:', data)
 
-        csocket.close()
-        self._socket.close()
+        client_socket.close()
+        self.socket.close()
         self.running = False
 
     def stop(self):

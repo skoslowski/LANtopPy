@@ -14,7 +14,6 @@ from .data import TEST_DATA
 class LantopTransportTest(unittest.TestCase):
 
     def setUp(self):
-        unittest.TestCase.setUp(self)
         self.server = LantopEmulator(resp_dict=TEST_DATA)
         self.server.start()
         self.tp = Transport(*self.server.server_address)
@@ -52,7 +51,6 @@ class LantopTransportTest(unittest.TestCase):
 class LantopTest(unittest.TestCase):
 
     def setUp(self):
-        unittest.TestCase.setUp(self)
         self.server = LantopEmulator(resp_dict=TEST_DATA)
         self.server.start()
         self.lt = Lantop(*self.server.server_address)
@@ -70,8 +68,8 @@ class LantopTest(unittest.TestCase):
         self.assertEqual(TEST_DATA[b'K174E53'][1], self.server.last_msg)
 
     def test_get_pin(self):
-        name = self.lt.get_pin()
-        self.assertEqual(TEST_DATA[b'T026250'][1], name)
+        pin = self.lt.get_pin()
+        self.assertEqual(TEST_DATA[b'T026250'][1], pin)
 
     def test_set_pin(self):
         self.lt.set_pin('1234')

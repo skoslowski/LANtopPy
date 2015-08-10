@@ -16,7 +16,7 @@ import argparse
 
 from . import __version__, utils
 from . lantop import Lantop, LantopError, CONTROL_MODES, TIMED_STATE_LABELS
-from . _config import LANTOP_CONF_PATH, LOCK_COUNTERS_FILE
+from . consts import LANTOP_CONF_PATH, LOCK_COUNTERS_FILE
 from . lock_counts import LockCounts
 
 

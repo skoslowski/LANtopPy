@@ -4,7 +4,7 @@ with a yearly programm (TR 64* top2 connected using a EM LAN top2 module)
 """
 
 from . lantop import Lantop, LantopError
-from . _config import *
+from . consts import *
 
 
 __all__ = ["Lantop", "LantopError"]

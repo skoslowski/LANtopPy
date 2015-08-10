@@ -1,25 +1,27 @@
 # -*- coding: utf-8 -*-
-"""lantop client API"""
+"""Low-level communication with lantop device"""
 
 import socket
 import logging
 import base64
 
-from ._config import ERROR_NAMES, DEFAULT_PORT
+from .consts import ERROR_NAMES, DEFAULT_PORT
 from .errors import LantopTransportError
+
+
+logger = logging.getLogger(__name__)
 
 
 class Transport(object):
     """Connection to LANtop2 and basic protocol"""
 
-    def __init__(self, host=None, port=DEFAULT_PORT):
+    def __init__(self, host, port=DEFAULT_PORT):
         """Connect to LANtop2 module
 
         :param host: host name or ip
-        :param port: port
+        :param port: port (defaults to lantop standard port)
 
         """
-        self.logger = logging.getLogger("lantop.transport")
         self._socket = None
 
         try:
@@ -34,7 +36,7 @@ class Transport(object):
             self._socket = socket.socket(family, socktype, proto)
             self._socket.settimeout(4.0)  # same as Theben software
             self._socket.connect(sockaddr)
-            self.logger.debug("Connected to %s:%d", host, port)
+            logger.debug("Connected to %s:%d", host, port)
         except:
             raise LantopTransportError("Could not connect to LANtop2")
 
@@ -43,6 +45,7 @@ class Transport(object):
         if self._socket:
             self._socket.close()
             self._socket = None
+            logger.debug('Disconnected')
 
     def _send(self, req_code, channel=None, args=b''):
         """Generic send method to send a command to LANtop
@@ -55,9 +58,9 @@ class Transport(object):
         # Command structure: req_code [channel] args
         command = bytearray(req_code, encoding='UTF-8')
         if channel is not None:
-            command += hex(channel)[2:].upper().rjust(2, "0").encode('UTF-8')
+            command += base64.b16encode(bytes([channel]))
         command += args
-        self.logger.debug("Sending command %s", command)
+        logger.debug("Sending command %s", command)
         self._socket.sendall(command)
 
     def _receive(self):
@@ -65,7 +68,6 @@ class Transport(object):
 
         :throws LantopException: If a message cannot be received
         :returns: the received message
-
         """
         try:
             length = self._socket.recv(1)[0] - 32
@@ -73,7 +75,7 @@ class Transport(object):
             received = 0
             while received < length:
                 received += self._socket.recv_into(buffer[received:])
-            self.logger.debug("Got response %s", buffer)
+            logger.debug("Got response %s", buffer)
             return buffer.obj
         except Exception:
             raise LantopTransportError("Could not read from LANtop2")
@@ -102,7 +104,7 @@ class Transport(object):
             data = base64.b16decode(data)
         except:
             raise LantopTransportError("Message can not be decoded")
-        if not resp_code.encode('UTF-8') == data[:len(resp_code)]:
+        if resp_code.encode('UTF-8') != data[:len(resp_code)]:
             raise LantopTransportError("Wrong response code")
         payload = data[len(resp_code):]
         return payload
@@ -117,12 +119,9 @@ class Transport(object):
 
         """
         msg = self.request(req_code, resp_code, channel, args)
-        code = msg[0]
-        if code != 0:
+        error_code = msg[0]
+        if error_code != 0:
             try:
-                raise LantopTransportError("Got " + ERROR_NAMES[code])
+                raise LantopTransportError("Got " + ERROR_NAMES[error_code])
             except IndexError:
                 raise LantopTransportError("Got unknown error code")
-
-    def __del__(self):
-        self.close()

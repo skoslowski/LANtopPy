@@ -10,7 +10,7 @@ from oauth2client.client import OAuth2WebServerFlow
 
 from dateutil.parser import parse as dateutil_parse
 
-from . _config import CONFIG
+from . config import CONFIG
 
 
 API_TOKEN_STORAGE = os.path.expanduser(os.path.join(

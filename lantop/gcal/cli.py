@@ -9,7 +9,7 @@ import json
 from . client import GCalEventImporter, GCalEventError
 from . parser import get_combined_actions
 
-from . _config import CONFIG
+from . config import CONFIG
 from lantop import LANTOP_CONF_PATH
 from lantop.cli import get_logger
 

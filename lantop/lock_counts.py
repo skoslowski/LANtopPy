@@ -7,7 +7,7 @@ import json
 import logging
 from datetime import datetime, timedelta
 
-from . _config import LOCK_COUNTERS_FILE
+from . consts import LOCK_COUNTERS_FILE
 
 
 class LockCounts(object):

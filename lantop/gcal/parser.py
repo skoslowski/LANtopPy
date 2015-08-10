@@ -4,7 +4,7 @@
 import re
 from datetime import timedelta
 
-from . _config import CONFIG
+from . config import CONFIG
 
 
 class Action(object):

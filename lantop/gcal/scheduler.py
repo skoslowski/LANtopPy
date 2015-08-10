@@ -11,7 +11,7 @@ import logging
 from .. import utils, Lantop, __version__ as version
 from ..lock_counts import LockCounts
 
-from ._config import CONFIG
+from .config import CONFIG
 from .client import GCalEventImporter
 from .parser import get_combined_actions
 from .utils import PushBulletHandler

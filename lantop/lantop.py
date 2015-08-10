@@ -6,7 +6,7 @@ import struct
 import base64
 from datetime import datetime, date
 
-from . _config import (
+from . consts import (
     DEVICE_TYPES, CONTROL_MODES, TIMED_STATE_LABELS,
     STATE_REASONS
 )
@@ -24,6 +24,14 @@ class Lantop(object):
         self.tp = None
         if args or kwargs:
             self.connect(*args, **kwargs)
+
+    def __enter__(self):
+        if not self.tp:
+            raise RuntimeError('Not connected to device')
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
 
     def connect(self, *args, retries=0, **kwargs):
         if self.tp:
@@ -43,14 +51,6 @@ class Lantop(object):
         if self.tp:
             self.tp.close()
             self.tp = None
-
-    def __enter__(self):
-        if not self.tp:
-            raise RuntimeError('Not connected to device')
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.close()
 
     def get_info(self):
         """Get device Info (type, serial number)
@@ -109,7 +109,7 @@ class Lantop(object):
             raise LantopError("Only numeric pin allowed")
         if not len(pin) == 4:
             raise LantopError("PIN must be exactly 4 numbers")
-        self.tp.command("T046150", "ap", args=pin.encode())
+        self.tp.command("T046150", "ap", args=str(pin).encode())
 
     def get_extra_info(self):
         """Get metadata from device

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Config values for gcalimport package"""
+"""Config values for gcal package"""
 
 import datetime
 from lantop import LANTOP_CONF_PATH
@@ -24,7 +24,7 @@ CONFIG = {
     'poll_interval': datetime.timedelta(minutes=20),
 
     ############################################################
-    # Psuh Bullet API
+    # Push Bullet API
     ############################################################
     'PB_API_KEY': '',
 

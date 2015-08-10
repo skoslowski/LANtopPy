@@ -34,7 +34,7 @@ TEST_DATA = {
                  datetime(2012, 11, 21, 14, 14, 0, 211)),
     # set time
     b'T08615A': (b'617A0021',
-                b'T08615A0B0C0D0E0F10'),
+                 b'T08615A0B0C0D0E0F10'),
     # get states
     b'T02624B': (b'626B8C0209020202020200000015',
                  [{'active': True, 'reason': 'Dauer int', 'index': 0},

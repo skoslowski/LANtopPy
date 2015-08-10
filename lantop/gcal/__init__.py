@@ -3,7 +3,7 @@
 
 from . client import GCalEventImporter, GCalEventError
 from . cli import main
-from . _config import CONFIG
+from . config import CONFIG
 
 __all__ = ["GCalEventImporter", "GCalEventError"]
 __author__ = "Sebastian Koslowski"
