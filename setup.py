@@ -11,7 +11,8 @@ import setuptools
 HERE = os.path.abspath(os.path.dirname(__file__))
 
 VERSION_PY = "lantop/_version.py"
-VERSION_PY_TEMPLATE = """# -*- coding: utf-8 -*-
+VERSION_PY_TEMPLATE = """\
+# -*- coding: utf-8 -*-
 # This file is originally generated from Git information by running 'setup.py
 # version'. Distribution tarballs contain a pre-generated copy of this file.
 
@@ -34,7 +35,7 @@ class Version(setuptools.Command):
     def run(self):
         try:
             version = Version.from_file()
-            version_new = Version.call_git_describe()
+            version_new = Version.from_git_describe()
             if version is not None:
                 print("version: current is '{}'.".format(version))
             if version == version_new:
@@ -46,17 +47,14 @@ class Version(setuptools.Command):
             print("version failed.", file=sys.stderr)
 
     @staticmethod
-    def call_git_describe():
+    def from_git_describe():
         """Get version string from git"""
         version = subprocess.check_output(["git", "describe", "--tags"])
-        if not isinstance(version, str):
+        if isinstance(version, bytes):
             version = version.decode()
-        # adapt git-describe version to be in line with PEP 386
-        parts = version.split("-")
-        if parts[0][0] == "v":
-            parts[0] = parts[0][1:]
-        parts[-2] = "post" + parts[-2]
-        return ".".join(parts[:-1])
+        version = version.strip()
+        # adapt git-describe version to be in line with PEP 440
+        return version.lstrip('v').replace('-g', '+git').replace('-', '.post')
 
     @staticmethod
     def to_file(version):
