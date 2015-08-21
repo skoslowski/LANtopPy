@@ -39,12 +39,15 @@ class GCalEventImporter(object):
         if credentials is None or credentials.invalid:
             raise GCalAuthorizationMissing('Missing or invalid credentials')
 
-        self.service = discovery.build(
-            serviceName="calendar",
-            version="v3",
-            http=credentials.authorize(httplib2.Http()),
-            developerKey=dev_key
-        )
+        try:
+            self.service = discovery.build(
+                serviceName="calendar",
+                version="v3",
+                http=credentials.authorize(httplib2.Http()),
+                developerKey=dev_key
+            )
+        except httplib2.HttpLib2Error:
+            raise GCalEventError("Can't connect to Google API")
 
         if calendar_came:
             self.select_calendar(calendar_came)

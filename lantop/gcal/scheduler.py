@@ -11,7 +11,7 @@ from .. import utils, Lantop, __version__
 from ..lock_counts import LockCounts
 
 from .config import CONFIG
-from .client import GCalEventImporter
+from .client import GCalEventImporter, GCalEventError
 from .parser import get_combined_actions
 
 
@@ -22,7 +22,13 @@ def update_jobs(scheduler):
     start = scheduler.timefunc() + timedelta(seconds=30)
     end = start + CONFIG["time_span"]
 
-    events = GCalEventImporter(CONFIG["calendar_name"]).get_events(start, end)
+    try:
+        gcal = GCalEventImporter(CONFIG["calendar_name"])
+        events = gcal.get_events(start, end)
+    except GCalEventError:
+        logger.error("Can't fetch events from Google Calender")
+        return
+
     actions = [a for a in get_combined_actions(events) if start < a.time < end]
 
     logger.info("Scheduling %d actions from %d Google Calender events",
