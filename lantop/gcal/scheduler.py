@@ -19,7 +19,7 @@ def update_jobs(scheduler):
     scheduler.enter(CONFIG['poll_interval'], 0, update_jobs, (scheduler,))
     logger = logging.getLogger(__name__ + '.updater')
 
-    start = scheduler.timefunc() + timedelta(seconds=30)
+    start = scheduler.timefunc()
     end = start + CONFIG["time_span"]
 
     try:
@@ -90,6 +90,7 @@ def main():
             scheduler.run()
 
         except Exception as e:
+            print(e)
             logger.exception(e)
 
         except KeyboardInterrupt:
