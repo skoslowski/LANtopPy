@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 
 from dateutil.tz import tzlocal
 from lantop.gcal.parser import (
-    Action, extract_actions, extract_actions_from_desc
+    Action, extract_actions, extract_actions_from_desc, get_combined_actions
 )
 
 CHANNELS = {"ch" + str(i): i for i in range(4)}
@@ -27,6 +27,17 @@ class EventParserTest(unittest.TestCase):
         actions = list(extract_actions(events, CHANNELS))
         exp = [Action(events[0]["start"], {0: "on"}, "x ch0 adsf"),
                Action(events[0]["end"], {0: "auto"}, "x ch0 adsf")]
+        self.assertEqual(exp, actions)
+
+    def test_parse_event_combiner(self):
+        events = [Event(summary="ch0 comment0"),
+                  Event(summary="ch1 comment1", end=NOW + timedelta(hours=3)),
+                  Event(summary="ch2", start=NOW + timedelta(hours=1))]
+        actions = get_combined_actions(events, CHANNELS)
+        exp = [Action(events[0]["start"], {0: "on", 1: "on"}, "ch0 comment0 + ch1 comment1"),
+               Action(events[2]["start"], {2: "on"}, "ch2"),
+               Action(events[0]["end"], {0: "auto", 2: "auto"}, "ch0 comment0 + ch2"),
+               Action(events[1]["end"], {1: "auto"}, "ch1 comment1")]
         self.assertEqual(exp, actions)
 
     def test_parse_empty_event(self):
@@ -64,6 +75,7 @@ class EventParserTest(unittest.TestCase):
         events = [Event(description="ch1+60-90")]
         actions = list(extract_actions(events, CHANNELS))
         self.assertEqual([], actions)
+
 
 if __name__ == "__main__":
     unittest.main()

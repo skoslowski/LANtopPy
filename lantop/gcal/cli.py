@@ -10,7 +10,7 @@ from dateutil.tz import tzlocal
 from .. import utils
 
 from . client import GCalEventImporter, GCalEventError
-from . parser import get_combined_actions
+from . parser import get_combined_actions, remove_duplicate_comments
 from . config import CONFIG, LANTOP_CONF_PATH
 
 
@@ -43,9 +43,9 @@ def main():
 
     # build cron file with data found in events
     try:
+        actions = remove_duplicate_comments(get_combined_actions(events))
         entries = [str(action).encode("UTF-8")
-                   for action in get_combined_actions(events)
-                   if action.time > now]
+                   for action in actions if action.time > now]
         logger.info("Imported %d actions from Google Calendar", len(entries))
 
     except Exception as err:

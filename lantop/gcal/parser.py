@@ -3,12 +3,15 @@
 
 import re
 from datetime import timedelta
+from operator import attrgetter
+from itertools import groupby
 
 from . config import CONFIG
 
 
 class Action(object):
     """A crontab entry for lantop commands"""
+    NONE = object()  # sentinel value to seed sum of Actions
 
     def __init__(self, time, args, label="", user=None):
         """Set parameters and format args for CronEvent"""
@@ -34,12 +37,20 @@ class Action(object):
             self.__class__.__name__, repr(self.time),
             repr(self.args), self.label)
 
-    def __iadd__(self, other):
+    def __add__(self, other):
         """Append others args and combine comment"""
-        self.args.update(other.args)
-        if self.label != other.label:
-            self.label = "{} + {}".format(self.label, other.label)
-        return self
+        if self.time != other.time or self.user != other.user:
+            return NotImplemented
+        args, label = self.args.copy(), self.label
+
+        args.update(other.args)
+        if label != other.label:
+            label += " + " + other.label
+        return type(self)(self.time, args, label, self.user)
+
+    def __radd__(self, other):
+        """Radd to NoAction returns self"""
+        return self if other is self.NONE else NotImplemented
 
     def __eq__(self, other):
         return self.__class__ == other.__class__ and \
@@ -98,27 +109,23 @@ def extract_actions(events, channels):
                 yield Action(event["end"], {index: "auto"}, event["summary"])
                 break  # only one channel per event
         else:
-            # if no channel names in event title, try to parse its description
-            for action in extract_actions_from_desc(event, channels):
-                yield action
-            # yield from
+            yield from extract_actions_from_desc(event, channels)
 
 
-def get_combined_actions(events):
+def get_combined_actions(events, channels=None):
     """Combine actions triggered at the same time"""
-    actions = {}
-    for action in extract_actions(events, CONFIG["channels"]):
-        try:
-            actions[action.time] += action
-        except KeyError:
-            actions[action.time] = action
-    # put the combined actions (unique times) in a sorted list
-    action_list = sorted(list(actions.values()), key=lambda a: a.time)
-    # remove duplicate comments in consecutive lists
-    # last_comment = None
-    # for action in action_list:
-    #     if action.comment == last_comment:
-    #         action.comment = None
-    #     else:
-    #         last_comment = action.comment
-    return action_list
+    channels = channels or CONFIG["channels"]
+    actions = sorted(extract_actions(events, channels), key=attrgetter('time'))
+    return [sum(action_group, Action.NONE)
+            for _, action_group in groupby(actions, key=attrgetter('time'))]
+
+
+def remove_duplicate_comments(actions):
+    """Remove same comments in consecutive actions to get nicer crontab file"""
+    last_comment = None
+    for action in actions:
+        if action.comment == last_comment:
+            action.comment = None
+        else:
+            last_comment = action.comment
+    return actions
