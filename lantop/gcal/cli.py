@@ -9,7 +9,7 @@ from dateutil.tz import tzlocal
 
 from .. import utils
 
-from . client import GCalEventImporter, GCalEventError
+from . client import EventImporter, EventImporterError
 from . parser import get_combined_actions, remove_duplicate_comments
 from . config import CONFIG, LANTOP_CONF_PATH
 
@@ -34,10 +34,10 @@ def main():
     # get events from Google Calendar
     now = datetime.now(tzlocal())
     try:
-        gcal = GCalEventImporter(CONFIG["calendar_name"])
+        gcal = EventImporter(CONFIG["calendar_name"])
         events = gcal.get_events(now - timedelta(days=1),
                                  now + CONFIG["time_span"])
-    except GCalEventError as err:
+    except EventImporterError as err:
         logger.exception(err)
         return -1
 

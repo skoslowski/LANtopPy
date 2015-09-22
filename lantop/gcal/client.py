@@ -13,17 +13,15 @@ from dateutil.parser import parse as dateutil_parse
 from . config import CONFIG
 
 
-class GCalEventError(Exception):
+class EventImporterError(Exception):
     """Exceptions thrown by GCalEventImporter"""
-    pass
 
 
-class GCalAuthorizationMissing(GCalEventError):
-    """Exceptions thrown by GCalEventImporter"""
-    pass
+class AuthorizationMissing(EventImporterError):
+    """Missing or outdated authorization token"""
 
 
-class GCalEventImporter(object):
+class EventImporter(object):
     """Class for retrieving a list of calendar entries from Google"""
 
     def __init__(self, calendar_came=None):
@@ -33,11 +31,11 @@ class GCalEventImporter(object):
         try:
             dev_key = json.load(open(CONFIG["dev_key"]))
         except IOError:
-            raise GCalAuthorizationMissing('Missing developer key file')
+            raise AuthorizationMissing('Missing developer key file')
 
         credentials = Storage(CONFIG['credentials_storage_path']).get()
         if credentials is None or credentials.invalid:
-            raise GCalAuthorizationMissing('Missing or invalid credentials')
+            raise AuthorizationMissing('Missing or invalid credentials')
 
         try:
             self.service = discovery.build(
@@ -47,7 +45,7 @@ class GCalEventImporter(object):
                 developerKey=dev_key
             )
         except httplib2.HttpLib2Error:
-            raise GCalEventError("Can't connect to Google API")
+            raise EventImporterError("Can't connect to Google API")
 
         if calendar_came:
             self.select_calendar(calendar_came)
@@ -60,12 +58,12 @@ class GCalEventImporter(object):
                 self._calendar_id = calendar_list_entry["id"]
                 break
         else:
-            raise GCalEventError("Calendar not found")
+            raise EventImporterError("Calendar not found")
 
     def get_events(self, start, end):
         """Retrieve a list of event in the time between start and stop"""
         if not self._calendar_id:
-            raise GCalEventError("No calendar has been selected")
+            raise EventImporterError("No calendar has been selected")
 
         response = self.service.events().list(
             calendarId=self._calendar_id,
@@ -84,7 +82,7 @@ class GCalEventImporter(object):
 
         # check if there were more results
         if response.get("nextPageToken"):
-            raise GCalEventError("There were more")
+            raise EventImporterError("There were more")
 
         return events
 

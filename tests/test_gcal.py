@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 import unittest
@@ -6,8 +6,8 @@ from datetime import datetime, timedelta
 
 from dateutil.tz import tzlocal
 from lantop.gcal.parser import (
-    Action, extract_actions, extract_actions_from_desc, get_combined_actions,
-    simplify_label
+    Action, extract_actions, extract_actions_from_desc,
+    get_combined_actions, simplify_label
 )
 
 CHANNELS = ["ch" + str(i) for i in range(4)]

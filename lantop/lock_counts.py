@@ -1,4 +1,3 @@
-#!/usr/bin/env python2.7
 # -*- coding: utf-8 -*-
 """Alternative, simplified CLI with a state counter (3 on, 2 off = on)"""
 

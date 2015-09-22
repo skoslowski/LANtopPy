@@ -10,9 +10,8 @@ import logging
 from .. import utils, Lantop, __version__
 from ..lock_counts import LockCounts
 
-from . import parser
+from . import parser, client
 from .config import CONFIG
-from .client import GCalEventImporter, GCalEventError
 
 
 def update_jobs(scheduler):
@@ -23,9 +22,9 @@ def update_jobs(scheduler):
     end = start + CONFIG["time_span"]
 
     try:
-        gcal = GCalEventImporter(CONFIG["calendar_name"])
+        gcal = client.EventImporter(CONFIG["calendar_name"])
         events = gcal.get_events(start, end)
-    except GCalEventError:
+    except client.EventImporterError:
         logger.error("Can't fetch events from Google Calender")
         return
 
