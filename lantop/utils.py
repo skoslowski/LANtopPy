@@ -60,3 +60,17 @@ class PushBulletHandler(logging.Handler):
             )
         except Exception:
             self.handleError(record)
+
+
+class IndentFilter(logging.Filter):
+
+    def __init__(self, name='', indent=0):
+        super().__init__(name)
+        self.indent = indent
+
+    def filter(self, record):
+        if not super().filter(record):
+            return False
+        newline = '\n' + ' ' * self.indent
+        record.msg = newline.join(str(record.msg).strip().split('\n'))
+        return True
