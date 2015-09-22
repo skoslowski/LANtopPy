@@ -70,13 +70,13 @@ def extract_actions_from_desc(event, channels):
     :param channels: mapping of channel label to their respective index
 
     """
-    prog = re.compile("(" + "|".join(list(channels.keys())) + ")" +  # channels
-                      "([+-][0-9]+)?([+-][0-9]+)?",              # offsets
+    prog = re.compile("(" + "|".join(list(channels)) + ")" +  # channels
+                      "([+-][0-9]+)?([+-][0-9]+)?",           # offsets
                       re.I | re.U)
 
-    for match in prog.findall(event["description"]):
+    for match in prog.findall(event.get("description", '')):
         name = match[0].lower()
-        index = channels[name]
+        index = channels.index(name)
         offset_start = int(match[1]) \
             if len(match) > 1 and len(match[1]) > 0 else 0
         offset_end = int(match[2]) \
@@ -102,9 +102,9 @@ def extract_actions(events, channels):
 
     """
     for event in events:
-        for name, index in channels.items():
+        for index, name in enumerate(channels):
             # Check if the channel name is in the event title
-            if name in event["summary"].lower():
+            if name.lower() in event["summary"].lower():
                 yield Action(event["start"], {index: "on"}, event["summary"])
                 yield Action(event["end"], {index: "auto"}, event["summary"])
                 break  # only one channel per event
@@ -129,3 +129,13 @@ def remove_duplicate_comments(actions):
         else:
             last_comment = action.comment
     return actions
+
+
+def simplify_label(action, channels=None):
+    """Get a nice title of an action"""
+    channels = channels or CONFIG["channels"]
+    names = re.compile('(' + '|'.join(channels) + ')', re.I)
+    labels = {names.sub('', label).strip(' :(),-')
+              for label in action.label.split(' + ')}
+    labels.discard('')
+    return ' + '.join(labels) or action.label

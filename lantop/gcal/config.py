@@ -15,13 +15,13 @@ CONFIG = {
     'calendar_name': 'CZK',
     # how many days to get events in advantage
     'time_span': datetime.timedelta(days=7),
-    # mapping of channel labels to their indexes
-    'channels': {
-        'lüftung': 0,
-        'mutterkind': 1,
-        'heizung': 2,
-        'spare': 3
-    },
+    # list of channel labels
+    'channels': [
+        'Lüftung',
+        'Mutterkind',
+        'Heizung',
+        'Spare',
+    ],
     # how often to check to changes events
     'poll_interval': datetime.timedelta(minutes=20),
 

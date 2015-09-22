@@ -10,9 +10,9 @@ import logging
 from .. import utils, Lantop, __version__
 from ..lock_counts import LockCounts
 
+from . import parser
 from .config import CONFIG
 from .client import GCalEventImporter, GCalEventError
-from .parser import get_combined_actions
 
 
 def update_jobs(scheduler):
@@ -29,7 +29,8 @@ def update_jobs(scheduler):
         logger.error("Can't fetch events from Google Calender")
         return
 
-    actions = [a for a in get_combined_actions(events) if start < a.time < end]
+    actions = [a for a in parser.get_combined_actions(events)
+               if start < a.time < end]
 
     logger.info("Scheduling %d actions from %d Google Calender events",
                 len(actions), len(events))
@@ -39,7 +40,7 @@ def update_jobs(scheduler):
             scheduler.cancel(event)
     for action in actions:
         scheduler.enterabs(action.time, 1, run_lantop,
-                           (action.args, action.label))
+                           (action.args, parser.simplify_label(action)))
         logger.debug(('Adding {0.label!r:50}'
                       ' at {0.time} with {0.args}').format(action))
 
@@ -52,9 +53,11 @@ def run_lantop(change_list, label, retries=5):
     with device, LockCounts() as with_locks:
         for channel, state in change_list.items():
             with_locks.apply(device.set_state, channel, state)
-
+        time.sleep(1.0)  # else, the reported states can be outdated
         logger.warning(
-            'Event: %r\nStates:%s', label,
+            'Event: %r\n%s\n\nStates: %s', label or '(no label)',
+            ', '.join('- {}: {}'.format(CONFIG['channels'][ch], state)
+                      for ch, state in sorted(change_list.items())),
             ' '.join('{active:d}'.format(**ch) for ch in device.get_states())
         )
 

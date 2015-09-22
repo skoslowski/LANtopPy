@@ -6,10 +6,11 @@ from datetime import datetime, timedelta
 
 from dateutil.tz import tzlocal
 from lantop.gcal.parser import (
-    Action, extract_actions, extract_actions_from_desc, get_combined_actions
+    Action, extract_actions, extract_actions_from_desc, get_combined_actions,
+    simplify_label
 )
 
-CHANNELS = {"ch" + str(i): i for i in range(4)}
+CHANNELS = ["ch" + str(i) for i in range(4)]
 NOW = datetime.now(tzlocal())
 
 
@@ -30,15 +31,26 @@ class EventParserTest(unittest.TestCase):
         self.assertEqual(exp, actions)
 
     def test_parse_event_combiner(self):
-        events = [Event(summary="ch0 comment0"),
-                  Event(summary="ch1 comment1", end=NOW + timedelta(hours=3)),
-                  Event(summary="ch2", start=NOW + timedelta(hours=1))]
+        events = [Event(summary="ch0 com0"),
+                  Event(summary="ch1 com1", end=NOW + timedelta(hours=3)),
+                  Event(summary="ch2 com0", start=NOW + timedelta(hours=1))]
         actions = get_combined_actions(events, CHANNELS)
-        exp = [Action(events[0]["start"], {0: "on", 1: "on"}, "ch0 comment0 + ch1 comment1"),
-               Action(events[2]["start"], {2: "on"}, "ch2"),
-               Action(events[0]["end"], {0: "auto", 2: "auto"}, "ch0 comment0 + ch2"),
-               Action(events[1]["end"], {1: "auto"}, "ch1 comment1")]
+        exp = [Action(events[0]["start"], {0: "on", 1: "on"},
+                      "ch0 com0 + ch1 com1"),
+               Action(events[2]["start"], {2: "on"}, "ch2 com0"),
+               Action(events[0]["end"], {0: "auto", 2: "auto"},
+                      "ch0 com0 + ch2 com0"),
+               Action(events[1]["end"], {1: "auto"}, "ch1 com1")]
         self.assertEqual(exp, actions)
+
+    def test_simplify_comments(self):
+        events = [Event(summary="ch0 com0"),
+                  Event(summary="ch1 com1", end=NOW + timedelta(hours=3)),
+                  Event(summary="ch2 com0", start=NOW + timedelta(hours=1))]
+        labels = [simplify_label(action, CHANNELS)
+                  for action in get_combined_actions(events, CHANNELS)]
+        self.assertEqual(labels[2], "com0")
+        self.assertIn(labels[0], ("com0 + com1", "com1 + com0"))
 
     def test_parse_empty_event(self):
         self.assertEqual([], list(extract_actions([Event()], CHANNELS)))
