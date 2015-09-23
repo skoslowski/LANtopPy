@@ -104,8 +104,10 @@ def parse_args(args):
 
     # get/set default ip:port if available
     if options.set_default_addr:
-        utils.set_dev_addr(options.dev_addr)
-
+        try:
+            utils.set_dev_addr(options.dev_addr)
+        except LantopError:
+            print("Failed to set default address", file=sys.stderr)
     return options
 
 
@@ -210,7 +212,7 @@ def get_and_print_overview(device, options, locks):
     print(header)
     # table entries
     for channel in range(len(states)):
-        name = device.get_channel_name(channel)
+        name = device.get_channel_name(channel).title()
         state = "On" if states[channel]["active"] else "Off"
         stats = device.get_channel_stats(channel)
         fmt = "{index:1d}  {:13} {:5s} {:5d} {reason:10s} {:6.1f}h {:6.1f}h {:8d}"

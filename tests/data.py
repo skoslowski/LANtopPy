@@ -46,7 +46,7 @@ TEST_DATA = {
                 b'T04614B'),
     # get channel name
     b'T03624E': (b'626E004C35434754554F44205351416C1B0760',
-                 'L5Cgtuod Sqal'),
+                 'L5CGTUOD SQAl'),
     # get channel stats
     b'T036242': (b'626200331A0000004000001B010100050207DAE3',
                  (670.7, 1638.4, 65819, date(2010, 2, 5))),

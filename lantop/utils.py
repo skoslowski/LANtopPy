@@ -2,37 +2,42 @@
 """Get/set the default dev addr, setup logging, pushbullet logging handler"""
 
 import os
-import sys
 import json
 import logging
 import logging.config
 
 from pushbullet import Pushbullet
 
-from . import LANTOP_CONF_PATH
+from . import LANTOP_CONF_PATH, LANTOP_CONF_FILE
 from .lantop import LantopError
-
-CONFIG_FILE = os.path.join(LANTOP_CONF_PATH, "dev_addr.json")
 
 
 def get_dev_addr():
     try:
-        with open(CONFIG_FILE, "r") as fp:
-            dev_addr = json.load(fp)
-    except (IOError, ValueError):
+        with open(LANTOP_CONF_FILE, encoding='utf-8') as fp:
+            dev_addr = json.load(fp)['device']
+    except (FileNotFoundError, ValueError, KeyError):
         raise LantopError("Can't load default device address")
     return dev_addr
 
 
 def set_dev_addr(value):
-    directory = os.path.dirname(CONFIG_FILE)
+    directory = os.path.dirname(LANTOP_CONF_FILE)
     if not os.path.exists(directory):
         os.makedirs(directory)
     try:
-        with open(CONFIG_FILE, "w") as fp:
-            json.dump(value, fp)
+        with open(LANTOP_CONF_FILE, encoding='utf-8') as fp:
+            config = json.load(fp)
+    except FileNotFoundError:
+        config = {"device": value}
+    except ValueError as e:
+        raise LantopError("Can't override invalid json file") from e
+
+    try:
+        with open(LANTOP_CONF_FILE, "w") as fp:
+            json.dump(config, fp, indent=4)
     except IOError:
-        print("Failed to set default address", file=sys.stderr)
+        raise LantopError("Failed to set default address")
 
 
 def setup_logging():
@@ -63,6 +68,7 @@ class PushBulletHandler(logging.Handler):
 
 
 class IndentFilter(logging.Filter):
+    """Indent extra lines of record messages"""
 
     def __init__(self, name='', indent=0):
         super().__init__(name)

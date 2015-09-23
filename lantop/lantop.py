@@ -253,7 +253,7 @@ class Lantop(object):
 
         """
         msg = self.tp.request("T03624E", "bn", channel=channel)
-        name = msg[1:14].decode('UTF-8').strip().title()
+        name = msg[1:14].decode('UTF-8').strip()
         return name
 
     def get_channel_stats(self, channel):

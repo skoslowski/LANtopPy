@@ -58,7 +58,7 @@ class Action(object):
             self.args == other.args and self.user == other.user
 
 
-def extract_actions_from_desc(event, channels):
+def extract_actions_from_desc(event):
     """Get triggers from event description
 
     Mentioning a channel label in the description will turn this channel on for
@@ -67,16 +67,15 @@ def extract_actions_from_desc(event, channels):
     and E_OFF are the offsets in minutes including their sign (+-xxx)
 
     :param event: event dict to examine
-    :param channels: mapping of channel label to their respective index
 
     """
-    prog = re.compile("(" + "|".join(list(channels)) + ")" +  # channels
+    prog = re.compile("(" + "|".join(list(CONFIG['channels'])) + ")" +
                       "([+-][0-9]+)?([+-][0-9]+)?",           # offsets
                       re.I | re.U)
 
     for match in prog.findall(event.get("description", '')):
         name = match[0].lower()
-        index = channels.index(name)
+        index = CONFIG['channels'].index(name)
         offset_start = int(match[1]) \
             if len(match) > 1 and len(match[1]) > 0 else 0
         offset_end = int(match[2]) \
@@ -89,7 +88,7 @@ def extract_actions_from_desc(event, channels):
             yield Action(end, {index: "auto"}, event["summary"])
 
 
-def extract_actions(events, channels):
+def extract_actions(events):
     """Extract actions from events based on the summary
 
     Yields a LantopCronAction object for extracted action. Each event summary
@@ -98,24 +97,22 @@ def extract_actions(events, channels):
     event)
 
     :param events: list of event dicts return by Google API
-    :param channels: mapping of channel label to their respective index
 
     """
     for event in events:
-        for index, name in enumerate(channels):
+        for index, name in enumerate(CONFIG['channels']):
             # Check if the channel name is in the event title
             if name.lower() in event["summary"].lower():
                 yield Action(event["start"], {index: "on"}, event["summary"])
                 yield Action(event["end"], {index: "auto"}, event["summary"])
                 break  # only one channel per event
         else:
-            yield from extract_actions_from_desc(event, channels)
+            yield from extract_actions_from_desc(event)
 
 
-def get_combined_actions(events, channels=None):
+def get_combined_actions(events):
     """Combine actions triggered at the same time"""
-    channels = channels or CONFIG["channels"]
-    actions = sorted(extract_actions(events, channels), key=attrgetter('time'))
+    actions = sorted(extract_actions(events), key=attrgetter('time'))
     return [sum(action_group, Action.NONE)
             for _, action_group in groupby(actions, key=attrgetter('time'))]
 
@@ -131,10 +128,9 @@ def remove_duplicate_comments(actions):
     return actions
 
 
-def simplify_label(action, channels=None):
+def simplify_label(action):
     """Get a nice title of an action"""
-    channels = channels or CONFIG["channels"]
-    names = re.compile('(' + '|'.join(channels) + ')', re.I)
+    names = re.compile('(' + '|'.join(CONFIG['channels']) + ')', re.I)
     labels = {names.sub('', label).strip(' :(),-')
               for label in action.label.split(' + ')}
     labels.discard('')

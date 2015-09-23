@@ -11,7 +11,7 @@ from .. import utils, Lantop, __version__
 from ..lock_counts import LockCounts
 
 from . import parser, client
-from .config import CONFIG
+from .config import CONFIG, load_user_config
 
 
 def update_jobs(scheduler):
@@ -55,7 +55,7 @@ def run_lantop(change_list, label, retries=5):
         time.sleep(1.0)  # else, the reported states can be outdated
         logger.warning(
             'Event: %r\n%s\n\nStates: %s', label or '(no label)',
-            ', '.join('- {}: {}'.format(CONFIG['channels'][ch], state)
+            '\n'.join('- {}: {}'.format(CONFIG['channels'][ch], state)
                       for ch, state in sorted(change_list.items())),
             ' '.join('{active:d}'.format(**ch) for ch in device.get_states())
         )
@@ -73,6 +73,13 @@ def sync_lantop_time(scheduler, retries=5):
 def main():
     utils.setup_logging()
     logger = logging.getLogger(__name__)
+
+    try:
+        load_user_config()
+    except Exception as e:
+        logger.exception(e)
+        exit(e)
+
     logger.warning("Scheduler started (%s)", __version__)
 
     def sleep_with_timedelta(duration):

@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """Handles Google API client stuff"""
 
-import json
 import httplib2
 
 from apiclient import discovery
@@ -10,7 +9,7 @@ from oauth2client.client import flow_from_clientsecrets
 
 from dateutil.parser import parse as dateutil_parse
 
-from . config import CONFIG
+from . config import CONFIG, load_user_config
 
 
 class EventImporterError(Exception):
@@ -29,9 +28,9 @@ class EventImporter(object):
         self._calendar_id = ""
 
         try:
-            dev_key = json.load(open(CONFIG["dev_key"]))
-        except IOError:
-            raise AuthorizationMissing('Missing developer key file')
+            dev_key = CONFIG["google_dev_key"]
+        except KeyError:
+            raise AuthorizationMissing('Missing developer key in settings')
 
         credentials = Storage(CONFIG['credentials_storage_path']).get()
         if credentials is None or credentials.invalid:
@@ -58,7 +57,8 @@ class EventImporter(object):
                 self._calendar_id = calendar_list_entry["id"]
                 break
         else:
-            raise EventImporterError("Calendar not found")
+            raise EventImporterError("Calendar {!r} not found"
+                                     "".format(calendar_came))
 
     def get_events(self, start, end):
         """Retrieve a list of event in the time between start and stop"""
@@ -88,8 +88,15 @@ class EventImporter(object):
 
 
 def authorize():
-    flow = flow_from_clientsecrets(CONFIG['client_secrets'], CONFIG['scope'],
-                                   redirect_uri='urn:ietf:wg:oauth:2.0:oob')
+    try:
+        load_user_config()
+    except Exception as e:
+        exit(e)
+
+    flow = flow_from_clientsecrets(
+        filename=CONFIG['client_secrets'],
+        scope='https://www.googleapis.com/auth/calendar.readonly',
+        redirect_uri='urn:ietf:wg:oauth:2.0:oob')
 
     authorize_url = flow.step1_get_authorize_url()
 

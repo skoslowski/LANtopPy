@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 """Get triggers from Google Calendar and format them for cron"""
 
-import os
-import json
 import logging
 from datetime import datetime, timedelta
 from dateutil.tz import tzlocal
@@ -11,25 +9,18 @@ from .. import utils
 
 from . client import EventImporter, EventImporterError
 from . parser import get_combined_actions, remove_duplicate_comments
-from . config import CONFIG, LANTOP_CONF_PATH
-
-
-def load_config():
-    """Define and parse command line options"""
-    config_file = os.path.expanduser(
-        os.path.join(LANTOP_CONF_PATH, "gcal_import.json"))
-    try:
-        with open(config_file, "r") as fp:
-            CONFIG.update(json.load(fp))
-    except (IOError, ValueError):
-        pass
+from . config import CONFIG, load_user_config
 
 
 def main():
     """get event and generate crontab"""
     utils.setup_logging()
     logger = logging.getLogger(__name__)
-    load_config()
+    try:
+        load_user_config()
+    except Exception as err:
+        logger.exception(err)
+        exit(err)
 
     # get events from Google Calendar
     now = datetime.now(tzlocal())
@@ -39,13 +30,12 @@ def main():
                                  now + CONFIG["time_span"])
     except EventImporterError as err:
         logger.exception(err)
-        return -1
+        return 1
 
     # build cron file with data found in events
     try:
         actions = remove_duplicate_comments(get_combined_actions(events))
-        entries = [str(action).encode("UTF-8")
-                   for action in actions if action.time > now]
+        entries = [str(action) for action in actions if action.time > now]
         logger.info("Imported %d actions from Google Calendar", len(entries))
 
     except Exception as err:
@@ -59,4 +49,4 @@ def main():
             fp.write("\n".join(entries) + "\n")
     except IOError:
         logger.error("Could not write to crontab file")
-        return -1
+        return 1

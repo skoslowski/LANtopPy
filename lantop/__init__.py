@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """A client API and CLI to control/manage Theben digital time switches
-with a yearly programm (TR 64* top2 connected using a EM LAN top2 module)
+with a yearly program (TR 64* top2 connected using a EM LAN top2 module)
 """
 
 import os.path
@@ -26,3 +26,4 @@ except ImportError:
 LANTOP_CONF_PATH = os.path.abspath(os.path.expanduser(
     os.environ.get('LANTOP_CONF_PATH', DEFAULT_LANTOP_CONF_PATH)))
 
+LANTOP_CONF_FILE = os.path.join(LANTOP_CONF_PATH, "lantop.json")
