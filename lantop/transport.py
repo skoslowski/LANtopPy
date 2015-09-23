@@ -37,8 +37,8 @@ class Transport(object):
             self._socket.settimeout(4.0)  # same as Theben software
             self._socket.connect(sockaddr)
             logger.debug("Connected to %s:%d", host, port)
-        except:
-            raise LantopTransportError("Could not connect to LANtop2")
+        except Exception as err:
+            raise LantopTransportError("Could not connect to LANtop2") from err
 
     def close(self):
         """Disconnect from LANtop2"""

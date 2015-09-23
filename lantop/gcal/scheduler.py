@@ -6,6 +6,7 @@ import sched
 from datetime import datetime, timedelta
 from dateutil.tz import tzlocal
 import logging
+import functools
 
 from .. import utils, Lantop, __version__
 from ..lock_counts import LockCounts
@@ -15,7 +16,6 @@ from .config import CONFIG, load_user_config
 
 
 def update_jobs(scheduler):
-    scheduler.enter(CONFIG['poll_interval'], 0, update_jobs, (scheduler,))
     logger = logging.getLogger(__name__ + '.updater')
 
     start = scheduler.timefunc()
@@ -61,13 +61,31 @@ def run_lantop(change_list, label, retries=5):
         )
 
 
-def sync_lantop_time(scheduler, retries=5):
-    scheduler.enter(timedelta(days=7), 2, update_jobs, (scheduler,))
+def sync_lantop_time(retries=5):
     logger = logging.getLogger(__name__ + '.time_sync')
 
     with Lantop(*utils.get_dev_addr(), retries=retries) as device:
         device.set_time()
     logger.info('Updated time on device')
+
+
+class Scheduler(sched.scheduler):
+
+    def enter_per(self, delay, priority, action, argument=(), kwargs=None):
+        """Enter an action to be executed now and then periodically"""
+        kwargs = kwargs or {}
+
+        @functools.wraps(action)
+        def action_wrapped(*args_, **kwargs_):
+            self.enter(delay, priority, action_wrapped, argument, kwargs)
+            action(*args_, **kwargs_)
+        self.enter(timedelta(), priority, action_wrapped, argument, kwargs)
+
+    @staticmethod
+    def sleep_with_timedelta(duration):
+        if hasattr(duration, 'total_seconds'):
+            duration = duration.total_seconds()
+        time.sleep(duration)
 
 
 def main():
@@ -81,18 +99,12 @@ def main():
         exit(e)
 
     logger.warning("Scheduler started (%s)", __version__)
-
-    def sleep_with_timedelta(duration):
-        if hasattr(duration, 'total_seconds'):
-            duration = duration.total_seconds()
-        time.sleep(duration)
-
-    scheduler = sched.scheduler(
+    scheduler = Scheduler(
         timefunc=lambda: datetime.now(tzlocal()),
-        delayfunc=sleep_with_timedelta
+        delayfunc=Scheduler.sleep_with_timedelta
     )
-    sync_lantop_time(scheduler)
-    update_jobs(scheduler)
+    scheduler.enter_per(CONFIG['poll_interval'], 0, update_jobs, (scheduler,))
+    scheduler.enter_per(timedelta(days=7), 2, sync_lantop_time)
 
     while True:
         try:
