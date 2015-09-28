@@ -158,7 +158,7 @@ class Lantop(object):
             version = float(msg[:4])
             vdate = datetime.strptime(msg[5:13], "%Y%m%d").date()
         except:
-            raise LantopError("Cannot parse respone")
+            raise LantopError("Cannot parse response")
 
         return version, vdate
 
@@ -172,7 +172,7 @@ class Lantop(object):
                 2000 + time_struct[2], time_struct[0]
             dev_time = datetime(*time_struct)
         except:
-            raise LantopError("Cannot parse respone")
+            raise LantopError("Cannot parse response")
 
         return dev_time
 

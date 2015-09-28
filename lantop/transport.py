@@ -38,7 +38,8 @@ class Transport(object):
             self._socket.connect(sockaddr)
             logger.debug("Connected to %s:%d", host, port)
         except Exception as err:
-            raise LantopTransportError("Could not connect to LANtop2") from err
+            raise LantopTransportError("Could not connect to LANtop2 ({})"
+                                       "".format(err)) from err
 
     def close(self):
         """Disconnect from LANtop2"""
@@ -77,8 +78,9 @@ class Transport(object):
                 received += self._socket.recv_into(buffer[received:])
             logger.debug("Got response %s", buffer)
             return buffer.obj
-        except Exception:
-            raise LantopTransportError("Could not read from LANtop2")
+        except Exception as err:
+            raise LantopTransportError("Could not read from LANtop2 ({})"
+                                       "".format(err)) from err
 
     def request(self, req_code, resp_code, channel=None, args=b''):
         """Combined send and receive (decode) method
