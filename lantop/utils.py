@@ -80,3 +80,23 @@ class IndentFilter(logging.Filter):
         newline = '\n' + ' ' * self.indent
         record.msg = newline.join(str(record.msg).strip().split('\n'))
         return True
+
+
+class ContentFilter(logging.Filter):
+    """Pass only tagged messages (or only not tagged)"""
+
+    def __init__(self, name='', tag='', mode='match'):
+        super().__init__(name)
+        self.tag = tag
+        self.mode = mode
+
+    def filter(self, record):
+        if not super().filter(record):
+            return False
+        if not self.tag:
+            return True
+        response = self.mode != 'match'
+        if self.tag in record.msg:
+            record.msg = record.msg.replace(self.tag, '')
+            response = not response
+        return self.mode == 'clear' or response
