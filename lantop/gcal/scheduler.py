@@ -52,9 +52,10 @@ def run_lantop(change_list, label, retries=5):
     with device, LockCounts() as with_locks:
         for channel, state in change_list.items():
             with_locks.apply(device.set_state, channel, state)
+
         time.sleep(5.0)  # else, the reported states can be outdated
         new_states = ['{active:d}'.format(**ch) for ch in device.get_states()]
-        logger.warning(
+        logging.getLogger(__name__ + '.monitor').info(
             'Event: %r\n%s\nStates: %s', label or '(no label)',
             '\n'.join('{}: {}'.format(CONFIG['channels'][ch], state)
                       for ch, state in sorted(change_list.items())),
