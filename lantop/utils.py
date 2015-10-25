@@ -34,10 +34,11 @@ def set_dev_addr(value):
         raise LantopError("Can't override invalid json file") from e
 
     try:
-        with open(LANTOP_CONF_FILE, "w") as fp:
-            json.dump(config, fp, indent=4)
-    except IOError:
-        raise LantopError("Failed to set default address")
+        with open(LANTOP_CONF_FILE, "w", encoding='utf-8') as fp:
+            json.dump(config, fp, indent=4, ensure_ascii=False)
+    except IOError as e:
+        print(e)
+        raise LantopError("Failed to set default address") from e
 
 
 def setup_logging():
