@@ -2,7 +2,6 @@
 """Google Calendar connector for lantop package"""
 
 from . client import EventImporter, EventImporterError
-from . cli import main
 from . config import CONFIG
 
 __all__ = ["EventImporter", "EventImporterError"]

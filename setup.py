@@ -96,7 +96,7 @@ setuptools.setup(
     entry_points={
         "console_scripts": [
             "lantop = lantop.cli:main",
-            "gcal_cron = lantop.gcal.cli:main",
+            "gcal_cron = lantop.gcal.cron:main",
             "gcal_scheduler = lantop.gcal.scheduler:main",
             "gcal_auth = lantop.gcal.client:authorize",
         ]
