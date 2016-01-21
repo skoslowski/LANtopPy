@@ -78,9 +78,9 @@ class Scheduler(sched.scheduler):
         kwargs = kwargs or {}
 
         @functools.wraps(action)
-        def action_wrapped(*args_, **kwargs_):
+        def action_wrapped(*argument_, **kwargs_):
             self.enter(delay, priority, action_wrapped, argument, kwargs)
-            action(*args_, **kwargs_)
+            action(*argument_, **kwargs_)
         self.enter(timedelta(), priority, action_wrapped, argument, kwargs)
 
     @staticmethod
