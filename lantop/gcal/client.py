@@ -23,7 +23,9 @@ class AuthorizationMissing(EventImporterError):
 class EventImporter(object):
     """Class for retrieving a list of calendar entries from Google"""
 
-    def __init__(self, calendar_came=None):
+    calendar_name_id_cache = {}
+
+    def __init__(self, calendar_name=None):
         """Connect to and authenticate with Google API"""
         self._calendar_id = ""
 
@@ -46,19 +48,25 @@ class EventImporter(object):
         except httplib2.HttpLib2Error:
             raise EventImporterError("Can't connect to Google API")
 
-        if calendar_came:
-            self.select_calendar(calendar_came)
+        if calendar_name:
+            self.select_calendar(calendar_name)
 
-    def select_calendar(self, calendar_came):
+    def select_calendar(self, name, use_cache=True):
         """Select a calendar to be used for entry retrieval"""
+        if use_cache and name in self.calendar_name_id_cache:
+            self._calendar_id = self.calendar_name_id_cache[name]
+            return
+
         response = self.service.calendarList().list().execute()
         for calendar_list_entry in response["items"]:
-            if calendar_list_entry["summary"] == calendar_came:
-                self._calendar_id = calendar_list_entry["id"]
+            if calendar_list_entry["summary"] == name:
+                id_ = calendar_list_entry["id"]
+                self._calendar_id = id_
+                self.calendar_name_id_cache[name] = id_
                 break
         else:
             raise EventImporterError("Calendar {!r} not found"
-                                     "".format(calendar_came))
+                                     "".format(name))
 
     def get_events(self, start, end):
         """Retrieve a list of event in the time between start and stop"""
