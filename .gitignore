@@ -1,6 +1,5 @@
 __pycache__/
 *.log
-_version.py
 *.egg-info/
 /.eggs/
 /build/

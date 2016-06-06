@@ -2,82 +2,14 @@
 # -*- coding: utf-8 -*-
 """Setup script for LANtopPy"""
 
-import sys
-import os
-import re
-import subprocess
 import setuptools
-
-HERE = os.path.abspath(os.path.dirname(__file__))
-
-VERSION_PY = "lantop/_version.py"
-VERSION_PY_TEMPLATE = """\
-# -*- coding: utf-8 -*-
-# This file is originally generated from Git information by running 'setup.py
-# version'. Distribution tarballs contain a pre-generated copy of this file.
-
-__version__ = "{}"
-"""
-
-
-class Version(setuptools.Command):
-    """setup command to update _version.py"""
-    description = "update _version.py from 'git describe'"
-    user_options = []
-    boolean_options = []
-
-    def initialize_options(self):
-        pass
-
-    def finalize_options(self):
-        pass
-
-    def run(self):
-        try:
-            version = Version.from_file()
-            version_new = Version.from_git_describe()
-            if version is not None:
-                print("version: current is '{}'.".format(version))
-            if version == version_new:
-                print("version: unchanged.")
-            else:
-                Version.to_file(version_new)
-                print("version: new is '{}'.".format(version_new))
-        except (EnvironmentError, IndexError):
-            print("version failed.", file=sys.stderr)
-
-    @staticmethod
-    def from_git_describe():
-        """Get version string from git"""
-        version = subprocess.check_output(["git", "describe", "--tags"])
-        if isinstance(version, bytes):
-            version = version.decode()
-        version = version.strip()
-        # adapt git-describe version to be in line with PEP 440
-        return version.lstrip('v').replace('-g', '+git').replace('-', '.post')
-
-    @staticmethod
-    def to_file(version):
-        """Write version to _version.py"""
-        with open(os.path.join(HERE, VERSION_PY), "w") as fp:
-            fp.write(VERSION_PY_TEMPLATE.format(version))
-
-    @staticmethod
-    def from_file():
-        """Read version from _version.py"""
-        try:
-            for line in open(os.path.join(HERE, VERSION_PY), "r"):
-                mo = re.match("__version__ = \"([^']+)\"", line)
-                if mo:
-                    return mo.group(1)
-        except EnvironmentError:
-            print("version: could not read from file.")
-        return None
-
+import versioneer
 
 setuptools.setup(
     name="LANtopPy",
-    version=Version.from_file() or "0.0",
+    version=versioneer.get_version(),
+    cmdclass=versioneer.get_cmdclass(),
+
     license="GPL",
     author="Sebastian Koslowski",
     author_email="sebastian.koslowski@gmail.com",
@@ -91,7 +23,11 @@ setuptools.setup(
     download_url="https://github.com/skoslowski/LANtopPy/archive/master.zip",
 
     packages=["lantop", "lantop.gcal"],
-    install_requires=[line.strip() for line in open("requirements.txt")],
+    install_requires=[
+        'python-dateutil',
+        'google-api-python-client',
+        'pushbullet.py',
+    ],
 
     entry_points={
         "console_scripts": [
@@ -102,9 +38,4 @@ setuptools.setup(
         ]
     },
     test_suite="tests",
-
-    # zip_safe = False,
-    cmdclass={
-        "version": Version
-    }
 )

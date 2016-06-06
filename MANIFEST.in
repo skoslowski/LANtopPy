@@ -1,3 +1,5 @@
 include README.md
 include MANIFEST.in
 include requirements.txt
+include versioneer.py
+include lantop/_version.py

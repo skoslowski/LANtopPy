@@ -1,3 +1,1 @@
-python-dateutil
-google-api-python-client
-pushbullet.py
+-e .
