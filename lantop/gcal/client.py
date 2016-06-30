@@ -3,7 +3,7 @@
 
 import httplib2
 
-from apiclient import discovery
+import apiclient
 from oauth2client.file import Storage
 from oauth2client.client import flow_from_clientsecrets
 
@@ -12,7 +12,10 @@ from dateutil.parser import parse as dateutil_parse
 from . config import CONFIG, load_user_config
 
 
-class EventImporterError(Exception):
+Error = apiclient.errors.Error
+
+
+class EventImporterError(Error):
     """Exceptions thrown by GCalEventImporter"""
 
 
@@ -39,7 +42,7 @@ class EventImporter(object):
             raise AuthorizationMissing('Missing or invalid credentials')
 
         try:
-            self.service = discovery.build(
+            self.service = apiclient.discovery.build(
                 serviceName="calendar",
                 version="v3",
                 http=credentials.authorize(httplib2.Http()),

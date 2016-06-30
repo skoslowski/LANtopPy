@@ -24,8 +24,8 @@ def update_jobs(scheduler):
     try:
         gcal = client.EventImporter(CONFIG["calendar_name"])
         events = gcal.get_events(start, end)
-    except client.EventImporterError:
-        logger.error("Can't fetch events from Google Calender")
+    except client.Error as error:
+        logger.error(error)
         return
 
     actions = [a for a in parser.get_combined_actions(events)
