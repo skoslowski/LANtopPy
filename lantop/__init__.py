@@ -3,7 +3,7 @@
 with a yearly program (TR 64* top2 connected using a EM LAN top2 module)
 """
 
-from ._version import get_versions
+
 import os.path
 
 from .lantop import Lantop, LantopError
@@ -17,9 +17,7 @@ __all__ = ["Lantop", "LantopError"]
 __author__ = "Sebastian Koslowski"
 __license__ = "GPL"
 __copyright__ = "Copyright 2013 Sebastian Koslowski"
-__version__ = get_versions()['version']
 
-del get_versions
 
 LANTOP_CONF_PATH = os.path.abspath(os.path.expanduser(
     os.environ.get('LANTOP_CONF_PATH', DEFAULT_LANTOP_CONF_PATH)))
@@ -27,3 +25,6 @@ LANTOP_CONF_PATH = os.path.abspath(os.path.expanduser(
 LANTOP_CONF_FILE = os.path.join(LANTOP_CONF_PATH, "lantop.json")
 
 
+from ._version import get_versions
+__version__ = get_versions()['version']
+del get_versions
