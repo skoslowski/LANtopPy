@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """Setup script for LANtopPy"""
 
 import setuptools
@@ -23,10 +22,14 @@ setuptools.setup(
     download_url="https://github.com/skoslowski/LANtopPy/archive/master.zip",
 
     packages=["lantop", "lantop.gcal"],
+    package_dir={'lantop': 'lantop'},
+    package_data={'lantop': ['default.yml']},
+
     install_requires=[
         'python-dateutil',
         'google-api-python-client',
         'pushbullet.py',
+        'yamlsettings',
     ],
 
     entry_points={

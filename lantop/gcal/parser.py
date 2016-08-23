@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """A Class to represent and format a entry in a crontab file"""
 
 import re
@@ -6,28 +5,35 @@ from datetime import timedelta
 from operator import attrgetter
 from itertools import groupby
 
-from . config import CONFIG
-
 
 class Action(object):
     """A crontab entry for lantop commands"""
+    channel_names = []
+    cron_user = cron_cmd = cron_arg = ''
+
+    @classmethod
+    def set_defaults(cls, channel_names, user='root', cmd='', arg='', **_):
+        cls.channel_names = channel_names
+        cls.cron_user = user
+        cls.cron_cmd = cmd
+        cls.cron_arg = arg
+
     NONE = object()  # sentinel value to seed sum of Actions
 
-    def __init__(self, time, args, label="", user=None):
+    def __init__(self, time, args, label=""):
         """Set parameters and format args for CronEvent"""
         self.time = time
         self.label = label
         self.args = args
-        self.user = user or CONFIG["cron_user"]
 
     def __str__(self):
         """Format entry for crontab"""
-        command = CONFIG["cron_cmd"].format(args=" ".join(
-            CONFIG["cron_arg"].format(channel=ch, state=st)
+        command = self.cron_cmd.format(args=" ".join(
+            self.cron_arg.format(channel=ch, state=st)
             for ch, st in self.args.items()
         ))
         output = "{:%M %H %d %m *}\t{}\t{}".format(
-            self.time, self.user, command, self.label)
+            self.time, self.cron_user, command, self.label)
         if self.label:
             output = "# {}\n{}".format(self.label, output)
         return output
@@ -39,14 +45,14 @@ class Action(object):
 
     def __add__(self, other):
         """Append others args and combine comment"""
-        if self.time != other.time or self.user != other.user:
+        if self.time != other.time or self.cron_user != other.cron_user:
             return NotImplemented
         args, label = self.args.copy(), self.label
 
         args.update(other.args)
         if label != other.label:
             label += " + " + other.label
-        return type(self)(self.time, args, label, self.user)
+        return type(self)(self.time, args, label)
 
     def __radd__(self, other):
         """Radd to NoAction returns self"""
@@ -55,7 +61,7 @@ class Action(object):
     def __eq__(self, other):
         return self.__class__ == other.__class__ and \
             self.time == other.time and self.label == other.label and \
-            self.args == other.args and self.user == other.user
+            self.args == other.args and self.cron_user == other.cron_user
 
 
 def extract_actions_from_desc(event):
@@ -69,13 +75,13 @@ def extract_actions_from_desc(event):
     :param event: event dict to examine
 
     """
-    prog = re.compile("(" + "|".join(list(CONFIG['channels'])) + ")" +
+    prog = re.compile("(" + "|".join(list(Action.channel_names)) + ")" +
                       "([+-][0-9]+)?([+-][0-9]+)?",           # offsets
                       re.I | re.U)
 
     for match in prog.findall(event.get("description", '')):
         name = match[0].lower()
-        index = CONFIG['channels'].index(name)
+        index = Action.channel_names.index(name)
         offset_start = int(match[1]) \
             if len(match) > 1 and len(match[1]) > 0 else 0
         offset_end = int(match[2]) \
@@ -100,7 +106,7 @@ def extract_actions(events):
 
     """
     for event in events:
-        for index, name in enumerate(CONFIG['channels']):
+        for index, name in enumerate(Action.channel_names):
             # Check if the channel name is in the event title
             if name.lower() in event["summary"].lower():
                 yield Action(event["start"], {index: "on"}, event["summary"])
@@ -130,7 +136,7 @@ def remove_duplicate_comments(actions):
 
 def simplify_label(action):
     """Get a nice title of an action"""
-    names = re.compile('(' + '|'.join(CONFIG['channels']) + ')', re.I)
+    names = re.compile('(' + '|'.join(action.channel_names) + ')', re.I)
     labels = {names.sub('', label).strip(' :(),-')
               for label in action.label.split(' + ')}
     labels.discard('')

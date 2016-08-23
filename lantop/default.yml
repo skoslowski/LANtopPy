@@ -1,0 +1,41 @@
+device:
+  # default device address
+  address:  # [192.168.0.9, 10001]
+  # no of retries to establishing a connection
+  retries: 0
+  # list of channel labels
+  channel_names: [ch0, ch1, ch2, ch3]
+
+
+scheduler:
+  # Google Calendar API
+  googleapi:
+    client_secrets_path: /PATH/TO/client_secret.json
+    credentials_storage_path: /PATH/TO/api_token.json
+    dev_key: YOUR_DEV_KEY_HERE
+
+  # Calendar to import events from
+  calendar_name: YOUR_CALENDAR_NAME
+  # how far to get events in advance
+  time_span: {days: 7}  # datetime.timedelta kwargs
+  # how often to check to changes events
+  poll_interval: {minutes: 60}  # datetime.timedelta kwargs
+
+
+cron: # alternative (old) scheduler
+  file: /etc/cron.d/lantop_set_state
+  user: root
+  cmd: "lantop --state {args} --retries 5 --quiet"
+  arg: "{channel:d}:{state:4s}"
+
+
+logging:
+  version: 1
+
+  handlers:
+    nop:
+      class: logging.NullHandler
+
+  loggers:
+    '':
+      handlers: [nop]

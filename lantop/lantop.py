@@ -33,12 +33,12 @@ class Lantop(object):
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
 
-    def connect(self, *args, retries=0, **kwargs):
+    def connect(self, host, port, retries=0):
         if self.tp:
             self.close()
         for failed in range(1 + retries):
             try:
-                self.tp = self.Transport(*args, **kwargs)
+                self.tp = self.Transport(host, port)
             except LantopTransportError:
                 if failed < retries:
                     time.sleep(5)

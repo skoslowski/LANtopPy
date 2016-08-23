@@ -1,54 +1,28 @@
-# -*- coding: utf-8 -*-
 """Get/set the default dev addr, setup logging, pushbullet logging handler"""
 
 import os
-import json
 import logging
 import logging.config
+import pkgutil
 
+import yamlsettings
 from pushbullet import Pushbullet
 
-from . import LANTOP_CONF_PATH, LANTOP_CONF_FILE
-from .lantop import LantopError
+from . import LANTOP_CONF_PATHS
 
 
-def get_dev_addr():
-    try:
-        with open(LANTOP_CONF_FILE, encoding='utf-8') as fp:
-            dev_addr = json.load(fp)['device']
-    except (FileNotFoundError, ValueError, KeyError):
-        raise LantopError("Can't load default device address")
-    return dev_addr
-
-
-def set_dev_addr(value):
-    directory = os.path.dirname(LANTOP_CONF_FILE)
-    if not os.path.exists(directory):
-        os.makedirs(directory)
-    try:
-        with open(LANTOP_CONF_FILE, encoding='utf-8') as fp:
-            config = json.load(fp)
-    except FileNotFoundError:
-        config = {"device": value}
-    except ValueError as e:
-        raise LantopError("Can't override invalid json file") from e
+def load_config():
+    config = yamlsettings.yamldict.load(pkgutil.get_data(__package__, 'default.yml'))
 
     try:
-        with open(LANTOP_CONF_FILE, "w", encoding='utf-8') as fp:
-            json.dump(config, fp, indent=4, ensure_ascii=False)
-    except IOError as e:
-        print(e)
-        raise LantopError("Failed to set default address") from e
+        overwrite = os.environ.get('LANTOP_CONFIG', '')
+        yamlsettings.update_from_file(
+            config, LANTOP_CONF_PATHS if not overwrite else [overwrite])
+    except OSError:
+        pass
 
-
-def setup_logging():
-    """Load logging settings from file"""
-    logging_config_file = os.path.join(LANTOP_CONF_PATH, "logging.json")
-    if os.path.exists(logging_config_file):
-        with open(logging_config_file) as fp:
-            logging.config.dictConfig(json.load(fp))
-    root = logging.getLogger()
-    root.addHandler(logging.NullHandler())
+    yamlsettings.update_from_env(config, prefix='LANTOP')
+    return config
 
 
 class PushBulletHandler(logging.Handler):

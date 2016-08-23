@@ -1,18 +1,17 @@
-# -*- coding: utf-8 -*-
 """CLI for lantop client API"""
 
-import sys
+import argparse
 from datetime import datetime, timedelta
-
-
 import logging
 import logging.config
-
-import argparse
+import sys
 
 from . import __version__, utils, LOCK_COUNTERS_FILE
 from . lantop import Lantop, LantopError, CONTROL_MODES, TIMED_STATE_LABELS
 from . lock_counts import LockCounts
+
+
+logger = logging.getLogger(__name__)
 
 
 def set_state_type(value):
@@ -55,16 +54,12 @@ def dev_addr_type(value):
         raise argparse.ArgumentTypeError("Error parsing device address")
 
 
-def parse_args(args):
+def parse_args(args, config):
     """Define and parse command line options"""
-    try:
-        dev_addr = utils.get_dev_addr()
-    except LantopError:
-        dev_addr = None
-
     parser = argparse.ArgumentParser(description="Get and set LANtop2 state, "
                                                  "settings and statistics")
 
+    dev_addr = config.device.address
     extra_args = {"nargs": "?", "default": dev_addr} if dev_addr else {}
     parser.add_argument(metavar="host[:port]", dest="dev_addr",
                         type=dev_addr_type,
@@ -88,10 +83,8 @@ def parse_args(args):
     parser.add_argument("-e", "--extra", dest="extra_info",
                         action="store_true", help="Show extra info")
     parser.add_argument("-y", "--retries", dest="retries", action="store",
-                        type=int, metavar="COUNT", default=0,
+                        type=int, metavar="COUNT", default=config.device.retries,
                         help="How often to retry connecting (random delay)")
-    parser.add_argument("--set-default", dest="set_default_addr",
-                        action="store_true", help="Set default IP (and port)")
     parser.add_argument("-q", "--quiet", dest="be_quiet", action="store_true",
                         help="Suppress output")
     parser.add_argument("-v", "--version", dest="show_version",
@@ -102,16 +95,10 @@ def parse_args(args):
     if options.duration and not options.set_states:
         parser.error("Need -s when -d is given.")
 
-    # get/set default ip:port if available
-    if options.set_default_addr:
-        try:
-            utils.set_dev_addr(options.dev_addr)
-        except LantopError:
-            print("Failed to set default address", file=sys.stderr)
     return options
 
 
-def change_device_states_or_time(device, options, locks, logger):
+def change_device_states_or_time(device, options, locks):
     """Change the state of a channel, the time, ... if requested"""
     add_spacer = False
 
@@ -223,10 +210,10 @@ def get_and_print_overview(device, options, locks):
 
 def main(args=None):
     """main function for the CLI"""
-    utils.setup_logging()
-    logger = logging.getLogger(__name__)
+    config = utils.load_config()
+    logging.config.dictConfig(config.get('logging', {}))
 
-    options = parse_args(args or sys.argv[1:])
+    options = parse_args(args or sys.argv[1:], config)
 
     if options.show_version:
         print("Version: {}".format(__version__))
@@ -242,7 +229,7 @@ def main(args=None):
             print("")
 
         # set stuff
-        change_device_states_or_time(device, options, locks, logger)
+        change_device_states_or_time(device, options, locks)
 
         # print overview
         if not options.be_quiet:

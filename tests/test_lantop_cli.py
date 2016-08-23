@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """Tests for lantop CLI"""
 
-import unittest
 import argparse
 from datetime import timedelta
+import os
+import types
+import unittest
 
 import lantop.cli
 
@@ -15,19 +16,13 @@ from .data import TEST_DATA
 class CLITest(unittest.TestCase):
     """Tests for lantop cli"""
 
-    def test_parse_dev_addr(self):
-        options = lantop.cli.parse_args(["dummy_host"])
-        self.assertEqual(["dummy_host"], options.dev_addr)
-
-        options = lantop.cli.parse_args(["dummy_host:123"])
-        self.assertEqual(["dummy_host", 123], options.dev_addr)
-
-    def test_parse_dev_addr_wrong(self):
-        with self.assertRaises(argparse.ArgumentTypeError):
-            lantop.cli.dev_addr_type("dummy_host:asf")
+    @classmethod
+    def setUpClass(cls):
+        os.environ['LANTOPPY_CONFIG'] = ''
 
     def test_parse_set_states(self):
-        options = lantop.cli.parse_args(["dummy_host", "-s", "0:on"])
+        config = types.SimpleNamespace(device=types.SimpleNamespace(address=None, retries=0))
+        options = lantop.cli.parse_args(["dummy_host", "-s", "0:on"], config)
         self.assertEqual([(0, "on")], options.set_states)
 
     def test_parse_set_states_wrong(self):

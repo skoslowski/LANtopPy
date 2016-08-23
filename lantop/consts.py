@@ -1,8 +1,9 @@
-# -*- coding: utf-8 -*-
 """Config value(s) for lantop client API and CLI"""
 
-# where settings for the CLI are stored (only the default IP so far)
-DEFAULT_LANTOP_CONF_PATH = "~/.config/lantop"
+LANTOP_CONF_PATHS = [
+    "/etc/lantop.yml",
+    "~/.config/lantop/lantop.yml",
+]
 
 LOCK_COUNTERS_FILE = "/var/lib/lantop/state"
 

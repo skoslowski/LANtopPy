@@ -1,5 +1,6 @@
-# -*- coding: utf-8 -*-
 """Handles Google API client stuff"""
+
+import logging.config
 
 import httplib2
 
@@ -9,8 +10,7 @@ from oauth2client.client import flow_from_clientsecrets
 
 from dateutil.parser import parse as dateutil_parse
 
-from . config import CONFIG, load_user_config
-
+from .. import utils
 
 Error = apiclient.errors.Error
 
@@ -28,16 +28,14 @@ class EventImporter(object):
 
     calendar_name_id_cache = {}
 
-    def __init__(self, calendar_name=None):
+    def __init__(self, credentials_storage_path, dev_key, calendar_name=None, **_):
         """Connect to and authenticate with Google API"""
         self._calendar_id = ""
 
-        try:
-            dev_key = CONFIG["google_dev_key"]
-        except KeyError:
+        if dev_key == 'YOUR_DEV_KEY_HERE':
             raise AuthorizationMissing('Missing developer key in settings')
 
-        credentials = Storage(CONFIG['credentials_storage_path']).get()
+        credentials = Storage(credentials_storage_path).get()
         if credentials is None or credentials.invalid:
             raise AuthorizationMissing('Missing or invalid credentials')
 
@@ -99,13 +97,11 @@ class EventImporter(object):
 
 
 def authorize():
-    try:
-        load_user_config()
-    except Exception as e:
-        exit(e)
+    config = utils.load_config()
+    logging.config.dictConfig(config.get('logging', {}))
 
     flow = flow_from_clientsecrets(
-        filename=CONFIG['client_secrets'],
+        filename=config.scheduler.google.client_secrets_path,
         scope='https://www.googleapis.com/auth/calendar.readonly',
         redirect_uri='urn:ietf:wg:oauth:2.0:oob')
 
@@ -119,4 +115,4 @@ def authorize():
     code = input('Enter verification code: ').strip()
     credential = flow.step2_exchange(code)
 
-    Storage(CONFIG['credentials_storage_path']).put(credential)
+    Storage(config.scheduler.google.credentials_storage_path).put(credential)

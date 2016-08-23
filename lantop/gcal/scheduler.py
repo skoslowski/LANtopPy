@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Crond like scheduler"""
 
 import time
@@ -6,23 +5,24 @@ import sched
 from datetime import datetime, timedelta
 from dateutil.tz import tzlocal
 import logging
+import logging.config
 import functools
 
-from .. import utils, Lantop, __version__
+from . import parser, client, __version__
+
+from .. import Lantop, utils
 from ..lock_counts import LockCounts
 
-from . import parser, client
-from .config import CONFIG, load_user_config
 
-
-def update_jobs(scheduler):
-    logger = logging.getLogger(__name__ + '.updater')
+def update_jobs(scheduler, lantop_updater, calendar_name, time_span, googleapi, **_):
+    logger = logging.getLogger(__name__ + '.update_jobs')
 
     start = scheduler.timefunc()
-    end = start + CONFIG["time_span"]
+    end = start + timedelta(**time_span)
 
     try:
-        gcal = client.EventImporter(CONFIG["calendar_name"])
+        gcal = client.EventImporter(**googleapi)
+        gcal.select_calendar(calendar_name)
         events = gcal.get_events(start, end)
     except client.Error as error:
         logger.error(error)
@@ -35,40 +35,47 @@ def update_jobs(scheduler):
                 len(actions), len(events))
 
     for event in scheduler.queue:
-        if event.action == run_lantop:
+        if event.action == lantop_updater:
             scheduler.cancel(event)
     for action in actions:
-        scheduler.enterabs(action.time, 1, run_lantop,
-                           (action.args, parser.simplify_label(action)))
-        logger.debug(('Adding {0.label!r:50}'
-                      ' at {0.time} with {0.args}').format(action))
-
-
-def run_lantop(change_list, label, retries=5):
-    logger = logging.getLogger(__name__ + '.executor')
-    logger.info('Setting %r for event %r', change_list, label)
-
-    device = Lantop(*utils.get_dev_addr(), retries=retries)
-    with device, LockCounts() as with_locks:
-        for channel, state in change_list.items():
-            with_locks.apply(device.set_state, channel, state)
-
-        time.sleep(5.0)  # else, the reported states can be outdated
-        new_states = ['{active:d}'.format(**ch) for ch in device.get_states()]
-        logging.getLogger(__name__ + '.monitor').info(
-            'Event: %r\n%s\nStates: %s', label or '(no label)',
-            '\n'.join('{}: {}'.format(CONFIG['channels'][ch], state)
-                      for ch, state in sorted(change_list.items())),
-            ' '.join(new_states)
+        scheduler.enterabs(
+            time=action.time,
+            priority=1,
+            action=lantop_updater,
+            argument=(action.args, parser.simplify_label(action))
         )
+        logger.debug('Adding {0.label!r:50} at {0.time} with {0.args}'
+                     ''.format(action))
 
 
-def sync_lantop_time(retries=5):
-    logger = logging.getLogger(__name__ + '.time_sync')
+class LantopStateChanger:
 
-    with Lantop(*utils.get_dev_addr(), retries=retries) as device:
-        device.set_time()
-    logger.info('Updated time on device')
+    def __init__(self, address, channel_names, retries=5):
+        self.lantop_args = address + [retries]
+        self.channel_names = channel_names
+
+    def update_states(self, change_list, label):
+        logger = logging.getLogger(__name__ + '.update_states')
+        logger.info('Setting %r for event %r', change_list, label)
+
+        device = Lantop(*self.lantop_args)
+        with device, LockCounts() as with_locks:
+            for channel, state in change_list.items():
+                with_locks.apply(device.set_state, channel, state)
+
+            time.sleep(5.0)  # else, the reported states can be outdated
+            new_states = ['{active:d}'.format(**ch) for ch in device.get_states()]
+            logging.getLogger(__name__ + '.monitor').info(
+                'Event: %r\n%s\nStates: %s', label or '(no label)',
+                '\n'.join('{}: {}'.format(self.channel_names[ch], state)
+                          for ch, state in sorted(change_list.items())),
+                ' '.join(new_states))
+
+    def sync_time(self):
+        logger = logging.getLogger(__name__ + '.sync_time')
+        with Lantop(*self.lantop_args) as device:
+            device.set_time()
+        logger.info('Updated time on device')
 
 
 class Scheduler(sched.scheduler):
@@ -91,22 +98,30 @@ class Scheduler(sched.scheduler):
 
 
 def main():
-    utils.setup_logging()
+    config = utils.load_config()
+    logging.config.dictConfig(config.get('logging', {}))
+    parser.Action.set_defaults(config.device.channel_names, **config.cron)
     logger = logging.getLogger(__name__)
 
-    try:
-        load_user_config()
-    except Exception as e:
-        logger.exception(e)
-        exit(e)
+    lantop_worker = LantopStateChanger(**config.device)
 
     logger.warning("Scheduler started (%s)", __version__)
     scheduler = Scheduler(
         timefunc=lambda: datetime.now(tzlocal()),
         delayfunc=Scheduler.sleep_with_timedelta
     )
-    scheduler.enter_per(CONFIG['poll_interval'], 0, update_jobs, (scheduler,))
-    scheduler.enter_per(timedelta(days=7), 2, sync_lantop_time)
+    scheduler.enter_per(
+        delay=timedelta(**config.scheduler.poll_interval),
+        priority=0,
+        action=update_jobs,
+        argument=(scheduler, lantop_worker.update_states),
+        kwargs=config.scheduler
+    )
+    scheduler.enter_per(
+        delay=timedelta(days=7),
+        priority=2,
+        action=lantop_worker.sync_time
+    )
 
     while True:
         try:

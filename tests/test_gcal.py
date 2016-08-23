@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
-import unittest
 from datetime import datetime, timedelta
+import os
+import unittest
 
 from dateutil.tz import tzlocal
 from lantop.gcal.parser import (
@@ -22,6 +22,11 @@ def Event(summary="", start=None, end=None, description=""):
 
 
 class EventParserTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        os.environ['LANTOPPY_CONFIG'] = ''
+        Action.set_defaults('ch0 ch1 ch2 ch3'.split(), '', '', '')
+
     def test_parse_event(self):
         events = [Event(summary="x ch0 adsf")]
         actions = list(extract_actions(events))

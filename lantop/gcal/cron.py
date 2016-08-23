@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Get triggers from Google Calendar and format them for cron"""
 
 import logging
@@ -8,26 +7,22 @@ from dateutil.tz import tzlocal
 from .. import utils
 
 from . client import EventImporter, EventImporterError
-from . parser import get_combined_actions, remove_duplicate_comments
-from . config import CONFIG, load_user_config
+from . parser import get_combined_actions, remove_duplicate_comments, Action
 
 
 def main():
     """get event and generate crontab"""
-    utils.setup_logging()
+    config = utils.load_config()
+    Action.set_defaults(config.devices.channel_names, **config.cron)
     logger = logging.getLogger(__name__)
-    try:
-        load_user_config()
-    except Exception as err:
-        logger.exception(err)
-        exit(err)
 
     # get events from Google Calendar
     now = datetime.now(tzlocal())
     try:
-        gcal = EventImporter(CONFIG["calendar_name"])
+        gcal = EventImporter(**config.scheduler.googleapi)
+        gcal.select_calendar(config.scheduler.calendar_name)
         events = gcal.get_events(now - timedelta(days=1),
-                                 now + CONFIG["time_span"])
+                                 now + timedelta(**config.scheduler.time_span))
     except EventImporterError as err:
         logger.exception(err)
         return 1
@@ -44,7 +39,7 @@ def main():
 
     # all good till here? Write triggers to file
     try:
-        with open(CONFIG["cron_file"], "w") as fp:
+        with open(config.cron.file, "w") as fp:
             fp.write("# LANtopPy actions - generated from google calendar\n")
             fp.write("\n".join(entries) + "\n")
     except IOError:
