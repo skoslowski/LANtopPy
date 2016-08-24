@@ -19,7 +19,7 @@ def main():
     # get events from Google Calendar
     now = datetime.now(tzlocal())
     try:
-        gcal = EventImporter(**config.scheduler.googleapi)
+        gcal = EventImporter(**config.googleapi)
         gcal.select_calendar(config.scheduler.calendar_name)
         events = gcal.get_events(now - timedelta(days=1),
                                  now + timedelta(**config.scheduler.time_span))

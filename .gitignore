@@ -4,4 +4,4 @@ __pycache__/
 /.eggs/
 /build/
 /.venv/
-/config/
+/ansible/

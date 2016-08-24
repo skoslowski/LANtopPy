@@ -12,8 +12,8 @@ from .consts import (
 
 __author__ = "Sebastian Koslowski"
 __license__ = "GPL"
-__copyright__ = "Copyright 2013 Sebastian Koslowski"
-__version__ = '4.2.dev'
+__copyright__ = "Copyright 2013-2016 Sebastian Koslowski"
+__version__ = '4.3.dev'
 
 __all__ = ["Lantop", "LantopError"]
 

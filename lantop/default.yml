@@ -5,21 +5,31 @@ device:
   retries: 0
   # list of channel labels
   channel_names: [ch0, ch1, ch2, ch3]
+  # how often to sync time (when using the scheduler) - None for off
+  time_sync_interval: {days: 7}
+
+# Google Calendar API
+googleapi:
+  client_secrets_path: /PATH/TO/client_secret.json
+  credentials_storage_path: /PATH/TO/api_token.json
+  dev_key: YOUR_DEV_KEY_HERE
 
 
 scheduler:
-  # Google Calendar API
-  googleapi:
-    client_secrets_path: /PATH/TO/client_secret.json
-    credentials_storage_path: /PATH/TO/api_token.json
-    dev_key: YOUR_DEV_KEY_HERE
-
   # Calendar to import events from
   calendar_name: YOUR_CALENDAR_NAME
   # how far to get events in advance
   time_span: {days: 7}  # datetime.timedelta kwargs
   # how often to check to changes events
   poll_interval: {minutes: 60}  # datetime.timedelta kwargs
+
+
+pb_authenticator:
+  api_key: YOUR_API_KEY_HERE
+  email: YOUR_EMAIL_HERE
+
+  timeout: {minutes: 5}
+  poll_interval: {seconds: 10}  # datetime.timedelta kwargs
 
 
 cron: # alternative (old) scheduler

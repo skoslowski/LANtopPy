@@ -33,7 +33,7 @@ class EventImporter(object):
         self._calendar_id = ""
 
         if dev_key == 'YOUR_DEV_KEY_HERE':
-            raise AuthorizationMissing('Missing developer key in settings')
+            raise ValueError('Missing developer key in settings')
 
         credentials = Storage(credentials_storage_path).get()
         if credentials is None or credentials.invalid:

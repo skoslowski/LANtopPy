@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Setup script for LANtopPy"""
 
-import setuptools
+from setuptools import setup, find_packages
 import versioneer
 
-setuptools.setup(
+setup(
     name="LANtopPy",
     version=versioneer.get_version(),
     cmdclass=versioneer.get_cmdclass(),
@@ -21,8 +21,7 @@ setuptools.setup(
     url="https://github.com/skoslowski/LANtopPy",
     download_url="https://github.com/skoslowski/LANtopPy/archive/master.zip",
 
-    packages=["lantop", "lantop.gcal"],
-    package_dir={'lantop': 'lantop'},
+    packages=find_packages(exclude=['tests']),
     package_data={'lantop': ['default.yml']},
 
     install_requires=[
