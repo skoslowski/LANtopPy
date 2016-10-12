@@ -8,14 +8,15 @@ from datetime import datetime, timedelta
 
 from . consts import LOCK_COUNTERS_FILE
 
+logger = logging.getLogger(__name__)
+
 
 class LockCounts(object):
     """Read/write the channel state counters from/to file"""
     max_channels = 8
 
-    def __init__(self, filename=None, logger=None):
+    def __init__(self, filename=None):
         self.filename = filename or LOCK_COUNTERS_FILE
-        self.logger = logger or logging.getLogger(__name__)
 
         self._counts = None
         self.modified = False
@@ -48,7 +49,7 @@ class LockCounts(object):
             mod_time_max = 7
             if mod_time_max > 0 and \
                datetime.now() - mod_time > timedelta(days=mod_time_max):
-                self.logger.warning(
+                logger.warning(
                     "State file was not modified in the last %d days.",
                     mod_time_max)
             # load counts
@@ -57,12 +58,11 @@ class LockCounts(object):
             # check consistency
             if len(counts) < self.max_channels:
                 counts = (counts + [0] * self.max_channels)[:self.max_channels]
-                self.logger.warning("States file did not contain %d entries",
+                logger.warning("States file did not contain %d entries",
                                self.max_channels)
 
         except (os.error, TypeError, ValueError, IOError):
-            self.logger.warning(
-                "Could not access or open state file, using all zeros")
+            logger.warning("Could not access or open state file, using all zeros")
             counts = [0] * self.max_channels
 
         self._counts = counts
@@ -79,8 +79,6 @@ class LockCounts(object):
         self.modified = False
 
     def apply(self, func, channel, state):
-        logger = self.logger
-
         def apply():
             func(channel, state)
             logger.info("Set channel {} to state {!r}.".format(channel, state))

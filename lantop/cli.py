@@ -222,7 +222,7 @@ def main(args=None):
     device = None
     try:
         device = Lantop(*options.dev_addr, retries=options.retries)
-        locks = LockCounts(LOCK_COUNTERS_FILE, logger)
+        locks = LockCounts(LOCK_COUNTERS_FILE)
 
         if not options.be_quiet:
             get_and_print_device_info(device, options)
