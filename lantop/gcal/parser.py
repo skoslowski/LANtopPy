@@ -1,7 +1,6 @@
 """A Class to represent and format a entry in a crontab file"""
 
 import re
-from datetime import timedelta
 from operator import attrgetter
 from itertools import groupby
 
@@ -64,36 +63,6 @@ class Action(object):
             self.args == other.args and self.cron_user == other.cron_user
 
 
-def extract_actions_from_desc(event):
-    """Get triggers from event description
-
-    Mentioning a channel label in the description will turn this channel on for
-    the duration of the event. Optionally start and end time offsets can be
-    specified by appending them to the label: LABEL[S_OFF[E_OFF]], where S_OFF
-    and E_OFF are the offsets in minutes including their sign (+-xxx)
-
-    :param event: event dict to examine
-
-    """
-    prog = re.compile("(" + "|".join(list(Action.channel_names)) + ")" +
-                      "([+-][0-9]+)?([+-][0-9]+)?",           # offsets
-                      re.I | re.U)
-
-    for match in prog.findall(event.get("description", '')):
-        name = match[0].lower()
-        index = Action.channel_names.index(name)
-        offset_start = int(match[1]) \
-            if len(match) > 1 and len(match[1]) > 0 else 0
-        offset_end = int(match[2]) \
-            if len(match) > 2 and len(match[2]) > 0 else 0
-
-        start = event["start"] + timedelta(minutes=offset_start)
-        end = event["end"] + timedelta(minutes=offset_end)
-        if start < end:
-            yield Action(start, {index: "on"}, event["summary"])
-            yield Action(end, {index: "auto"}, event["summary"])
-
-
 def extract_actions(events):
     """Extract actions from events based on the summary
 
@@ -112,8 +81,6 @@ def extract_actions(events):
                 yield Action(event["start"], {index: "on"}, event["summary"])
                 yield Action(event["end"], {index: "auto"}, event["summary"])
                 break  # only one channel per event
-        else:
-            yield from extract_actions_from_desc(event)
 
 
 def get_combined_actions(events):
