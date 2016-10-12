@@ -1,6 +1,7 @@
 """A Class to represent and format a entry in a crontab file"""
 
 import re
+from collections import defaultdict
 from operator import attrgetter
 from itertools import groupby
 
@@ -108,3 +109,15 @@ def simplify_label(action):
               for label in action.label.split(' + ')}
     labels.discard('')
     return ' + '.join(labels) or action.label
+
+
+def get_expected_states(events, when):
+    states = defaultdict(int)
+    for event in events:
+        if not event["start"] < when < event["end"]:
+            continue
+        for action in extract_actions([event]):
+            for ch, state in action.args.items():
+                if state == 'on':
+                    states[ch] += 1
+    return states

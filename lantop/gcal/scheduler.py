@@ -30,24 +30,25 @@ class JobUpdater:
 
         self.wait_for_auth = False
 
-    def run(self, scheduler, lantop_updater):
+    def run(self, scheduler, lantop_updater, lantop_state_checker):
         if self.wait_for_auth:
             return
         try:
-            self.update(scheduler, lantop_updater)
+            now = scheduler.timefunc()
+            gcal = client.EventImporter(**self.event_importer_kwargs)
+            gcal.select_calendar(self.calendar_name)
+            events = gcal.get_events(start=now - timedelta(days=3), end=now + self.time_span)
+
+            self.reschedule_actions(events, scheduler, lantop_updater)
+            self.schedule_state_check(events, scheduler, lantop_state_checker)
         except client.Error as error:
             self.logger.error(error)
             raise NeedAuthError()
 
-    def update(self, scheduler, lantop_updater):
-        gcal = client.EventImporter(**self.event_importer_kwargs)
-        gcal.select_calendar(self.calendar_name)
-
-        start = scheduler.timefunc()
-        end = start + self.time_span
-        events = gcal.get_events(start, end)
+    def reschedule_actions(self, events, scheduler, lantop_updater):
+        now = scheduler.timefunc()
         actions = [action for action in parser.get_combined_actions(events)
-                   if start < action.time < end]
+                   if action.time > now]
 
         self.logger.info("Scheduling %d actions from %d Google Calender events",
                          len(actions), len(events))
@@ -58,12 +59,23 @@ class JobUpdater:
         for action in actions:
             scheduler.enterabs(
                 time=action.time,
-                priority=1,
+                priority=5,
                 action=lantop_updater,
                 argument=(action.args, parser.simplify_label(action))
             )
             self.logger.debug('Adding {0.label!r:50} '
                               'at {0.time} with {0.args}'.format(action))
+
+    def schedule_state_check(self, events, scheduler, lantop_state_checker):
+        next_state_check = scheduler.timefunc() + timedelta(minutes=1)
+
+        expected_states = parser.get_expected_states(events, when=next_state_check)
+        scheduler.enterabs(
+            time=next_state_check,
+            priority=1,
+            action=lantop_state_checker,
+            argument=(expected_states,)
+        )
 
 
 class LantopStateChanger:
@@ -94,6 +106,25 @@ class LantopStateChanger:
         with Lantop(*self.lantop_args) as device:
             device.set_time()
         logger.getChild('sync_time').info('Updated time on device')
+
+    def check_states(self, expected_states):
+        logger_ = logger.getChild('check_states')
+
+        state_names = {True: 'on', False: 'off'}
+        msg = "Channel {index}: state '{state}' ({reason}, {locks} locks), " \
+              "but expected '{state_expected}' ({locks_expected} locks)."
+
+        locks = LockCounts()
+        with Lantop(*self.lantop_args) as device:
+            channels = device.get_states()
+
+        for index, channel in enumerate(channels):
+            actual, expected = locks[index], expected_states[index]
+            if actual != expected or channel['active'] != bool(expected):
+                logger_.warning(msg.format(
+                    locks_expected=expected, state_expected=state_names[bool(expected)],
+                    state=state_names[channel['active']], locks=locks[index], **channel
+                ))
 
 
 class Scheduler(sched.scheduler):
@@ -136,14 +167,14 @@ def main():
     )
     scheduler.enter_per(
         delay=timedelta(**config.scheduler.poll_interval),
-        priority=1,
+        priority=10,
         action=job_updater.run,
-        argument=(scheduler, lantop_worker.update_states),
+        argument=(scheduler, lantop_worker.update_states, lantop_worker.check_states),
     )
     if config.device.time_sync_interval:
         scheduler.enter_per(
             delay=timedelta(**config.device.time_sync_interval),
-            priority=2,
+            priority=20,
             action=lantop_worker.sync_time
         )
     if auth_flow:
@@ -153,7 +184,7 @@ def main():
             priority=0
         )
 
-    logger.warning("Scheduler started (%s)", __version__)
+    logger.warning("Scheduler started (v%s)", __version__)
     while True:
         try:
             scheduler.run()
