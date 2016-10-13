@@ -22,6 +22,8 @@ scheduler:
   time_span: {days: 7}  # datetime.timedelta kwargs
   # how often to check to changes events
   poll_interval: {minutes: 60}  # datetime.timedelta kwargs
+  # time of day when all channels are expected off [HH:MM]
+  check_all_off_time: ~  # yaml syntax for None
 
 
 pb_authenticator:

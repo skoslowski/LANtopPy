@@ -129,9 +129,11 @@ class LantopStateChanger:
 
 class Scheduler(sched.scheduler):
 
-    def enter_per(self, delay, priority, action, argument=(), kwargs=None):
+    def enter_per(self, delay, priority, action, argument=(), kwargs=None,
+                  first_time=None):
         """Enter an action to be executed now and then periodically"""
         kwargs = kwargs or {}
+        first_time = first_time or self.timefunc()
 
         @functools.wraps(action)
         def action_wrapped(*argument_, **kwargs_):
@@ -139,7 +141,8 @@ class Scheduler(sched.scheduler):
             result = action(*argument_, **kwargs_)
             if result == 'cancel':
                 self.cancel(event)
-        self.enter(timedelta(), priority, action_wrapped, argument, kwargs)
+
+        self.enterabs(first_time, priority, action_wrapped, argument, kwargs)
 
     @staticmethod
     def sleep_with_timedelta(duration):
@@ -184,6 +187,15 @@ def main():
             priority=0
         )
 
+    first_check_run = parse_check_time(config.scheduler.check_all_off_time)
+    if first_check_run:
+        scheduler.enter_per(
+            delay=timedelta(days=1),
+            action=lantop_worker.check_states([0] * 8),
+            priority=50,
+            first_time=first_check_run,
+        )
+
     logger.warning("Scheduler started (v%s)", __version__)
     while True:
         try:
@@ -202,3 +214,16 @@ def main():
 
         except KeyboardInterrupt:
             break
+
+
+def parse_check_time(value):
+    try:
+        time_ = datetime.strptime(value, 'HH:MM').time
+    except ValueError:
+        return None
+
+    first_time = datetime.combine(datetime.today(), time_)
+    if first_time < datetime.now():
+        first_time += timedelta(days=1)
+
+    return first_time
