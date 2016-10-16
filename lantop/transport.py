@@ -76,7 +76,7 @@ class Transport(object):
             received = 0
             while received < length:
                 received += self._socket.recv_into(buffer[received:])
-            logger.debug("Got response %s", buffer)
+            logger.debug("Got response %s", buffer.obj)
             return buffer.obj
         except Exception as err:
             raise LantopTransportError("Could not read from LANtop2 ({})"

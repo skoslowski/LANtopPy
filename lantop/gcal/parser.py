@@ -76,12 +76,15 @@ def extract_actions(events):
 
     """
     for event in events:
+        # Check if the channel name is in the event title
         for index, name in enumerate(Action.channel_names):
-            # Check if the channel name is in the event title
             if name.lower() in event["summary"].lower():
-                yield Action(event["start"], {index: "on"}, event["summary"])
-                yield Action(event["end"], {index: "auto"}, event["summary"])
-                break  # only one channel per event
+                break
+        else:
+            continue
+
+        yield Action(event["start"], {index: "on"}, event["summary"])
+        yield Action(event["end"], {index: "auto"}, event["summary"])
 
 
 def get_combined_actions(events):
